@@ -1,0 +1,3864 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TalentMatch Simulator • Pemetaan Minat & Gaya Kerja</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              navy: '#0B132B',
+              slate: '#1E293B',
+              green: '#16A34A',
+              greenHover: '#15803D',
+              greenLight: '#DCFCE7',
+              surface: '#F8FAFC',
+            },
+            dim: {
+              analytical: '#2563EB', // Biru
+              creative: '#9333EA',   // Ungu
+              social: '#16A34A',     // Hijau
+              practical: '#EA580C',  // Oranye
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN (Terkunci v4.4.7) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Kartu permukaan putih bersih dengan bayangan lembut */
+    .card-panel {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 1.125rem;
+      box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.07), 0 4px 8px -4px rgba(15, 23, 42, 0.03);
+    }
+
+    /* Pilihan jawaban interaktif */
+    .quiz-option-btn {
+      min-height: 58px;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1.5px solid #E2E8F0;
+      background: #FFFFFF;
+      border-radius: 0.875rem;
+    }
+    .quiz-option-btn:hover:not(:disabled) {
+      border-color: #10B981;
+      background-color: #F0FDF4;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.12);
+    }
+    .quiz-option-btn.selected {
+      border-color: #059669;
+      background-color: #ECFDF5;
+      box-shadow: 0 0 0 1.5px #059669, 0 4px 12px -2px rgba(16, 185, 129, 0.15);
+    }
+    .quiz-option-btn:focus-visible {
+      outline: 2.5px solid #059669;
+      outline-offset: 2px;
+    }
+
+    .progress-bar-fill {
+      transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Scrollbar halus */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ============================================================ */
+    /* ATURAN TATA LETAK CETAK / SIMPAN PDF (TEPAT 2 HALAMAN RAPI) */
+    /* ============================================================ */
+    .print-only {
+      display: none !important;
+    }
+    .print-page-break {
+      display: none;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm 10mm;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      html, body {
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+        font-size: 9pt !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: flex !important;
+      }
+      .print-section-title {
+        display: flex !important;
+      }
+      main {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      #screenResult {
+        display: block !important;
+      }
+      #screenResult > * {
+        margin-top: 0 !important;
+        margin-bottom: 0.35rem !important;
+      }
+      .card-panel {
+        box-shadow: none !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 6px !important;
+        padding: 0.5rem 0.75rem !important;
+        margin-bottom: 0.35rem !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      /* Alert Keandalan saat Cetak: Sangat Ringkas & Kompak */
+      #resultNoticeAlert {
+        padding: 0.3rem 0.5rem !important;
+        margin-bottom: 0.35rem !important;
+        border-radius: 6px !important;
+        font-size: 7.5pt !important;
+        line-height: 1.2 !important;
+      }
+      #resultNoticeAlert svg {
+        width: 13px !important;
+        height: 13px !important;
+      }
+
+      /* Kartu Profil Utama (Halaman 1) */
+      #resultHeroCard {
+        padding: 0.55rem 0.85rem !important;
+        margin-bottom: 0.35rem !important;
+      }
+      #resultHeroCard .border-b {
+        padding-bottom: 0.35rem !important;
+        margin-bottom: 0.35rem !important;
+      }
+      #resultHeroCard h2 {
+        font-size: 13.5pt !important;
+        line-height: 1.2 !important;
+      }
+      #resultHeroCard p {
+        font-size: 7.8pt !important;
+        line-height: 1.25 !important;
+      }
+      #resultTopScoreBox {
+        padding: 0.35rem 0.65rem !important;
+        min-width: 120px !important;
+      }
+      #resultTopScoreValue {
+        font-size: 12pt !important;
+      }
+
+      /* Tata Letak Radar & Bilah Skor Berdampingan (Halaman 1) */
+      #radarBarsContainer {
+        display: grid !important;
+        grid-template-columns: 185px 1fr !important;
+        gap: 0.5rem !important;
+        margin-bottom: 0 !important;
+      }
+      #radarCard {
+        padding: 0.45rem 0.55rem !important;
+        margin-bottom: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      #radarChartCanvas {
+        max-width: 140px !important;
+        max-height: 140px !important;
+      }
+      #barsCard {
+        padding: 0.45rem 0.75rem !important;
+        margin-bottom: 0 !important;
+      }
+      #barsCard .space-y-3\.5 {
+        display: grid !important;
+        gap: 0.25rem !important;
+      }
+      #barsCard .space-y-3\.5 > div {
+        padding: 0.25rem 0.5rem !important;
+        border-radius: 6px !important;
+      }
+      #barsCard p {
+        font-size: 7pt !important;
+        line-height: 1.15 !important;
+      }
+
+      /* PEMBATAS HALAMAN TEGAS: MENJAMIN HALAMAN 1 & 2 TERPISAH SEMPURNA */
+      .print-page-break {
+        display: block !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+      }
+
+      /* Kartu Rekomendasi Terpadu (Halaman 2) */
+      #recommendationsCard {
+        padding: 0.55rem 0.85rem !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 6px !important;
+        margin-bottom: 0 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      #recommendationsCard .border-b {
+        padding-bottom: 0.25rem !important;
+        margin-bottom: 0.35rem !important;
+      }
+
+      /* Semua Blok Rekomendasi Ditampilkan Sekaligus Saat Cetak */
+      #blockCareers, #blockMajors, #blockSkills {
+        display: block !important;
+      }
+
+      /* 3 Rekomendasi Karier (3 Kolom Sejajar) */
+      #tabPanelCareers {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 0.35rem !important;
+        margin-bottom: 0.35rem !important;
+      }
+      #tabPanelCareers > div {
+        padding: 0.4rem 0.5rem !important;
+        border-radius: 5px !important;
+        font-size: 7.5pt !important;
+      }
+      #tabPanelCareers h4 {
+        font-size: 8pt !important;
+        margin-bottom: 0.15rem !important;
+      }
+      #tabPanelCareers p {
+        font-size: 6.8pt !important;
+        line-height: 1.15 !important;
+      }
+
+      /* 4 Rekomendasi Jurusan (2x2 Kolom Sejajar) */
+      #tabPanelMajors {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.35rem !important;
+        margin-bottom: 0.35rem !important;
+      }
+      #tabPanelMajors > div {
+        padding: 0.4rem 0.5rem !important;
+        border-radius: 5px !important;
+        font-size: 7.5pt !important;
+      }
+      #tabPanelMajors h4 {
+        font-size: 8pt !important;
+        margin-bottom: 0.15rem !important;
+      }
+      #tabPanelMajors p {
+        font-size: 6.8pt !important;
+        line-height: 1.15 !important;
+      }
+
+      /* Roadmap Skill & Lingkungan Kerja */
+      #tabPanelSkills {
+        display: block !important;
+      }
+      #skillsGrid {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.35rem !important;
+        margin-bottom: 0.3rem !important;
+      }
+      #skillsGrid > div {
+        padding: 0.35rem 0.5rem !important;
+        border-radius: 5px !important;
+      }
+      #skillsGrid h4, #skillsGrid h5 {
+        font-size: 7.5pt !important;
+        margin-bottom: 0.15rem !important;
+      }
+      #skillsGrid p {
+        font-size: 6.8pt !important;
+        line-height: 1.15 !important;
+      }
+      #idealEnvBox {
+        padding: 0.35rem 0.5rem !important;
+        border-radius: 5px !important;
+        font-size: 7pt !important;
+        line-height: 1.2 !important;
+      }
+      #idealEnvBox h5 {
+        font-size: 7.2pt !important;
+        margin-bottom: 0.15rem !important;
+      }
+    }</style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-emerald-600 selection:text-white">
+
+  <!-- Header SaaS Modern & Profesional (Responsif, Berkonteks Jelas, Bebas AI-Slop) -->
+  <header class="w-full bg-white border-b border-slate-200 sticky top-0 z-40 no-print transition-all">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Sisi Kiri: Logo Brand Resmi di Navigasi (Langsung dari logo.png) -->
+      <a href="javascript:void(0)" onclick="handleBrandClick()" class="flex items-center group flex-shrink-0" title="TalentMatch Simulator">
+        <img src="logo.png" alt="TalentMatch Simulator" class="h-10 sm:h-12 w-auto object-contain transition group-hover:opacity-90">
+      </a>
+
+      <!-- Sisi Tengah (Mode Kuis): Progress Tracker Terpadu di Header -->
+      <div id="navQuizCenter" class="hidden sm:flex items-center gap-3 flex-grow max-w-xs mx-auto">
+        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
+          <div id="headerProgressFill" class="h-full bg-emerald-600 progress-bar-fill w-0"></div>
+        </div>
+        <span id="headerQuestionCounter" class="text-xs font-bold text-slate-700 font-mono whitespace-nowrap">0/10</span>
+      </div>
+
+      <!-- Sisi Kanan: Aksi & Indikator Sesuai Status Layar -->
+      <div class="flex items-center gap-2.5 flex-shrink-0">
+        
+        <!-- Status Welcome / Idle -->
+        <div id="navWelcomeStatus" class="flex items-center gap-2">
+          <div id="navPastResultBtn" class="hidden">
+            <button onclick="loadPreviousResult()" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition flex items-center gap-1.5 shadow-xs">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="hidden sm:inline">Hasil Terakhir</span>
+            </button>
+          </div>
+          <span class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>3 Menit</span>
+          </span>
+        </div>
+
+        <!-- Status Saat Kuis Berjalan (Indikator Auto-Save & Tombol Keluar) -->
+        <div id="navQuizActions" class="hidden items-center gap-3">
+          <!-- Indikator Auto-save (Membuktikan Aturan Bisnis 4 ke Penguji) -->
+          <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium bg-emerald-50/60 border border-emerald-200/60 px-2.5 py-1 rounded-md">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="hidden md:inline text-emerald-900 font-semibold">Tersimpan</span>
+          </div>
+
+          <button onclick="confirmExitToHome()" class="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <span>Keluar</span>
+          </button>
+        </div>
+
+        <!-- Status Saat Layar Hasil -->
+        <div id="navResultActions" class="hidden items-center gap-2">
+          <button onclick="window.print()" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition flex items-center gap-1.5 shadow-xs">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span class="hidden sm:inline">Cetak PDF</span>
+          </button>
+          <button onclick="confirmResetQuiz()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1 shadow-xs">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>Tes Ulang</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Kontainer Konten Utama -->
+  <main class="w-full max-w-3xl mx-auto px-6 py-8 sm:py-10 flex-grow flex items-center justify-center">
+
+    <!-- ============================================== -->
+    <!-- LAYAR 1: WELCOME SCREEN                        -->
+    <!-- ============================================== -->
+    <section id="screenWelcome" class="w-full">
+      <div class="space-y-9">
+        
+        <!-- Hero Header Bersih, Modern & Berkelas ala Platform EdTech Global -->
+        <div class="space-y-5 pt-1">
+          
+          <!-- Logo Brand Hero: Tampil Bersih, Terbingkai Elegan & Proporsional -->
+          <div class="inline-flex flex-wrap items-center gap-3.5 p-2 pr-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
+            <img src="logo.png" alt="TalentMatch Simulator" class="h-12 sm:h-14 w-auto object-contain flex-shrink-0">
+            <div class="h-7 w-px bg-slate-200 hidden sm:block"></div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-xs font-black uppercase tracking-wider text-slate-800">TalentMatch Simulator 2026</span>
+              <span class="text-slate-300 hidden sm:inline">•</span>
+              <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 hidden sm:inline-block">Edisi Psikometri Teruji</span>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.18]">
+              Kenali Potensimu, Temukan <br class="hidden sm:inline">
+              <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700">Arah Karier & Jurusanmu</span>
+            </h1>
+
+            <p class="text-slate-600 text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl font-normal">
+              Jawab 10 studi kasus situasional singkat untuk memetakan kecenderungan cara berpikir, dinamika peran kolaborasi tim, serta rekomendasi program studi dan jalur karier yang paling optimal bagimu.
+            </p>
+          </div>
+
+          <!-- Quick Trust Pills / Keunggulan Asesmen -->
+          <div class="flex flex-wrap items-center gap-2.5 pt-1">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>10 Studi Kasus Situasional</span>
+            </div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>±3 Menit Pengerjaan</span>
+            </div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Laporan Lengkap 2 Halaman</span>
+            </div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shadow-2xs">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>100% Gratis & Mandiri</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Banner Lanjutkan Draf Tersimpan (Aturan Bisnis 4) -->
+        <div id="draftResumeBanner" class="hidden p-4 sm:p-5 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            </div>
+            <div>
+              <p class="text-xs font-black uppercase tracking-wider text-emerald-800">Progres Asesmen Ditemukan</p>
+              <p class="text-xs sm:text-sm font-semibold text-slate-800 mt-0.5" id="draftResumeText">
+                Kamu memiliki progres pengerjaan yang belum selesai.
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button onclick="resumeQuizDraft()" class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 active:scale-98">
+              <span>Lanjutkan Pengerjaan</span>
+              <span>→</span>
+            </button>
+            <button onclick="discardDraftAndStartNew()" class="px-3.5 py-2.5 rounded-xl border border-slate-300 hover:bg-white text-slate-700 text-xs font-semibold transition">
+              Mulai Baru
+            </button>
+          </div>
+        </div>
+
+        <!-- KATALOG PILIHAN ASESMEN MINAT BAKAT (Ala AkuPintar: Pilih Modul Dulu Baru Mulai) -->
+        <div class="space-y-4 pt-1">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-200 pb-3">
+            <div>
+              <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-block mb-1">
+                Katalog Modul
+              </span>
+              <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Pilih Asesmen yang Ingin Kamu Ambil
+              </h2>
+              <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Setiap modul dirancang khusus dengan studi kasus dan pemetaan output yang terarah:
+              </p>
+            </div>
+            <div id="btnHeroPastResult" class="hidden">
+              <button onclick="loadPreviousResult()" class="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-white text-slate-700 transition flex items-center gap-1.5 shadow-2xs">
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>Lihat Hasil Sebelumnya</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="assessmentCatalog">
+            
+            <!-- MODUL 1: Tes Minat Karier & Gaya Kerja -->
+            <div class="card-panel card-hover p-5 sm:p-6 flex flex-col justify-between border-2 border-emerald-600 bg-white relative group overflow-hidden">
+              <!-- Top Accent Pill -->
+              <span class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
+              
+              <div class="space-y-3 pt-1">
+                <div class="flex items-center justify-between">
+                  <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200/80 shadow-2xs">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  </div>
+                  <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                    Paling Populer
+                  </span>
+                </div>
+
+                <div>
+                  <h3 class="text-base sm:text-lg font-black text-slate-900 leading-snug">
+                    Tes Minat Karier & Gaya Kerja
+                  </h3>
+                  <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                    Memetakan 4 spektrum gaya kerja alami, kecenderungan nalar, serta rekomendasi profesi dan jurusan kuliah.
+                  </p>
+                </div>
+
+                <!-- 3 Poin Unggulan Modul -->
+                <ul class="space-y-1.5 pt-1 text-[11px] text-slate-600 font-medium border-t border-slate-100">
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    <span>4 Spektrum Profil Gaya Kerja (Holland)</span>
+                  </li>
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    <span>3 Rekomendasi Profesi Masa Depan</span>
+                  </li>
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    <span>Relevansi Program Studi Universitas</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-emerald-800 bg-emerald-50/60 px-2.5 py-1 rounded-md">Holland Code</span>
+                <button onclick="openParticipantModal('career-style')" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-98">
+                  <span>Pilih Tes Ini</span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- MODUL 2: Tes Dinamika Tim & Kolaborasi -->
+            <div class="card-panel card-hover p-5 sm:p-6 flex flex-col justify-between border border-slate-200/90 hover:border-blue-400 bg-white relative group overflow-hidden">
+              <!-- Top Accent Pill -->
+              <span class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600"></span>
+
+              <div class="space-y-3 pt-1">
+                <div class="flex items-center justify-between">
+                  <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200/80 shadow-2xs">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                  </div>
+                  <span class="text-[10px] font-black uppercase tracking-wider text-blue-800 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+                    Kultur & Kelompok
+                  </span>
+                </div>
+
+                <div>
+                  <h3 class="text-base sm:text-lg font-black text-slate-900 leading-snug">
+                    Tes Dinamika Tim & Kolaborasi
+                  </h3>
+                  <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                    Mengenali peran alamimu dalam kelompok kerja: Strategist, Innovator, Harmonizer, atau Implementer.
+                  </p>
+                </div>
+
+                <!-- 3 Poin Unggulan Modul -->
+                <ul class="space-y-1.5 pt-1 text-[11px] text-slate-600 font-medium border-t border-slate-100">
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    <span>4 Peran Kolaborasi Kerja (Belbin)</span>
+                  </li>
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    <span>Gaya Interaksi & Manajemen Konflik</span>
+                  </li>
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    <span>Kultur Tim & Ekosistem Kerja Ideal</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-blue-800 bg-blue-50/60 px-2.5 py-1 rounded-md">Workplace Peran</span>
+                <button onclick="openParticipantModal('team-dynamics')" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-98">
+                  <span>Pilih Tes Ini</span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- MODUL 3: Tes Eksplorasi Jurusan Kuliah -->
+            <div class="card-panel card-hover p-5 sm:p-6 flex flex-col justify-between border border-slate-200/90 hover:border-purple-400 bg-white relative group overflow-hidden">
+              <!-- Top Accent Pill -->
+              <span class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 to-violet-600"></span>
+
+              <div class="space-y-3 pt-1">
+                <div class="flex items-center justify-between">
+                  <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-200/80 shadow-2xs">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/></svg>
+                  </div>
+                  <span class="text-[10px] font-black uppercase tracking-wider text-purple-800 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-full">
+                    Persiapan Kuliah
+                  </span>
+                </div>
+
+                <div>
+                  <h3 class="text-base sm:text-lg font-black text-slate-900 leading-snug">
+                    Tes Eksplorasi Jurusan Kuliah
+                  </h3>
+                  <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                    Menemukan program studi universitas yang paling relevan dengan potensi nalar dan minat belajarmu.
+                  </p>
+                </div>
+
+                <!-- 3 Poin Unggulan Modul -->
+                <ul class="space-y-1.5 pt-1 text-[11px] text-slate-600 font-medium border-t border-slate-100">
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
+                    <span>4 Rumpun Akademik (STEM, Seni, Soshum, Vokasi)</span>
+                  </li>
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
+                    <span>Rekomendasi Jurusan Kuliah Prioritas</span>
+                  </li>
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
+                    <span>Prospek Profesi Lulusan Universitas</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-purple-800 bg-purple-50/60 px-2.5 py-1 rounded-md">Akademik & Studi</span>
+                <button onclick="openParticipantModal('academic-pathway')" class="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-98">
+                  <span>Pilih Tes Ini</span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 4 SPEKTRUM DIMENSI PREVIEW YANG BERSIH & RAPI -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-black uppercase tracking-wider text-slate-400">
+              4 Spektrum Dimensi yang Dievaluasi:
+            </h3>
+            <span class="text-[11px] text-slate-400 font-medium">Berdasarkan Situasi Nyata</span>
+          </div>
+          
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-blue-300 transition">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                <span class="text-xs font-bold text-slate-900">Analitis</span>
+              </div>
+              <p class="text-[11px] text-slate-500 leading-snug">Data, fakta objektif & penalaran sistemik.</p>
+            </div>
+            
+            <div class="p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-purple-300 transition">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                <span class="text-xs font-bold text-slate-900">Kreatif</span>
+              </div>
+              <p class="text-[11px] text-slate-500 leading-snug">Gagasan inovatif, konsep visual & orisinalitas.</p>
+            </div>
+            
+            <div class="p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-emerald-300 transition">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                <span class="text-xs font-bold text-slate-900">Sosial</span>
+              </div>
+              <p class="text-[11px] text-slate-500 leading-snug">Empati, fasilitasi relasi tim & kemanusiaan.</p>
+            </div>
+            
+            <div class="p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-orange-300 transition">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="w-2.5 h-2.5 rounded-full bg-orange-600"></span>
+                <span class="text-xs font-bold text-slate-900">Praktis</span>
+              </div>
+              <p class="text-[11px] text-slate-500 leading-snug">Tindakan nyata, eksekusi lapangan & ketangkasan.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- LAYAR 2: KUIS (DESAIN FOKUS, TATA LETAK RAPI)  -->
+    <!-- ============================================== -->
+    <section id="screenQuiz" class="w-full hidden space-y-6">
+
+      <!-- Banner Peringatan Aturan Bisnis (Kuning In-Page, Nada Membantu) -->
+      <div id="inPageReliabilityBanner" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-start justify-between gap-3 shadow-xs">
+        <div class="flex items-start gap-2.5">
+          <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <div>
+            <p class="text-sm font-bold text-amber-950" id="reliabilityBannerTitle">
+              Jawabanmu sangat seragam, hasil mungkin kurang akurat.
+            </p>
+            <p class="text-xs sm:text-sm text-amber-900 mt-0.5" id="reliabilityBannerDesc">
+              Kamu bisa tetap melihat hasil atau mengulang kembali jika ingin gambaran yang lebih sesuai dengan dirimu.
+            </p>
+          </div>
+        </div>
+        <button onclick="dismissReliabilityBanner()" class="text-amber-700 hover:text-amber-950 text-xs font-bold p-1">
+          ✕
+        </button>
+      </div>
+
+      <!-- Header Kuis: Segmented 10-Step Progress Track & Brand Stamp -->
+      <div class="space-y-3.5 border-b border-slate-200 pb-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          
+          <!-- Logo Brand Terintegrasi di Setiap Soal (Tampil Jelas & Proporsional) -->
+          <div class="flex items-center gap-3">
+            <img src="logo.png" alt="TalentMatch" class="h-10 sm:h-11 w-auto object-contain flex-shrink-0">
+            <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span id="quizModuleBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                Tes Minat Karier & Gaya Kerja
+              </span>
+              <span id="quizHumanProgress" class="text-sm sm:text-base font-extrabold text-slate-900">
+                Soal 1 dari 10
+              </span>
+              <span class="text-slate-300">•</span>
+              <span id="quizCategoryLabel" class="text-xs sm:text-sm font-semibold text-slate-600">
+                Inisiasi Proyek
+              </span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+            <span class="text-xs font-semibold text-slate-500">Terjawab:</span>
+            <span class="text-xs sm:text-sm font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+              <strong id="answeredCounter" class="text-emerald-600 font-extrabold">0</strong> / 10
+            </span>
+          </div>
+        </div>
+
+        <!-- 10 Segmen Horisontal yang Rapi & Elegan -->
+        <div class="grid grid-cols-10 gap-1.5" id="segmentedProgressTrack">
+          <!-- 10 Segmen diisi via JS -->
+        </div>
+      </div>
+
+      <!-- Pertanyaan Utama -->
+      <div class="space-y-1.5 pt-1">
+        <h2 id="quizQuestionTitle" class="text-xl sm:text-2xl font-bold text-slate-900 leading-snug">
+          Memuat pertanyaan...
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-500">Pilih salah satu pendekatan yang paling spontan mencerminkan caramu bertindak:</p>
+      </div>
+
+      <!-- Daftar Pilihan Jawaban -->
+      <div id="quizOptionsContainer" class="space-y-3 pt-1" role="radiogroup" aria-label="Pilihan jawaban situasi">
+        <!-- Diisi dinamis via JS -->
+      </div>
+
+      <!-- Notifikasi Soal Terlewat -->
+      <div id="missingQuestionsBox" class="hidden p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-semibold flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span id="missingQuestionsNotice">Ada soal yang belum terisi.</span>
+        </div>
+        <button onclick="jumpToFirstSkipped()" class="underline text-amber-950 font-bold hover:text-amber-800">
+          Lengkapi Soal Terlewat →
+        </button>
+      </div>
+
+      <!-- Footer Navigasi & Tombol "Lihat Hasil" Terkunci (Aturan Bisnis 1) -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button id="btnPrev" onclick="prevQuestion()" 
+            class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:pointer-events-none">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>Sebelumnya</span>
+          </button>
+          <button id="btnNext" onclick="nextQuestion()" 
+            class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:pointer-events-none">
+            <span>Selanjutnya</span>
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        <button id="btnViewResult" onclick="attemptSubmit()" 
+          class="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-sm disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed bg-emerald-600 hover:bg-emerald-700 text-white active:scale-98">
+          <span id="btnViewResultLabel">Lihat Hasil (0/10)</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
+      </div>
+
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- LAYAR 3: ANALISIS KILAT (~1 DETIK)             -->
+    <!-- ============================================== -->
+    <section id="screenAnalyzing" class="w-full hidden">
+      <div class="card-panel p-10 max-w-md mx-auto text-center space-y-4">
+        <div class="w-10 h-10 mx-auto rounded-full border-3 border-emerald-200 border-t-emerald-600 animate-spin"></div>
+        <div class="space-y-1">
+          <h3 class="text-base font-bold text-slate-900">Menganalisis Jawabanmu</h3>
+          <p class="text-xs text-slate-500">Menghitung proporsi gaya kerja dominan...</p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- LAYAR 4: HASIL (EKSEKUTIF, RAPI, BERSIH)       -->
+    <!-- ============================================== -->
+    <section id="screenResult" class="w-full hidden space-y-7">
+
+      <!-- Header Resmi Khusus Halaman 1 Cetak / Simpan PDF (Disesuaikan Otomatis Sesuai Modul Tes yang Dipilih) -->
+      <div class="print-only print-header-page1 border-b border-slate-300 pb-2.5 mb-3 items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="logo.png" alt="TalentMatch Simulator" class="h-10 w-auto object-contain">
+          <div>
+            <h1 class="text-sm font-black text-slate-900 tracking-tight" id="printReportTitle">LAPORAN HASIL ASESMEN MINAT BAKAT & GAYA KERJA</h1>
+            <p class="text-[10px] text-slate-500 font-medium" id="printReportSub">TalentMatch Simulator • Standar Simulasi Holland & Situasional 2026</p>
+          </div>
+        </div>
+        <div class="text-right text-[10px] text-slate-600">
+          <p class="font-extrabold text-slate-900" id="printParticipantName">Peserta: -</p>
+          <p class="text-slate-400" id="printReportDate">Tanggal: -</p>
+        </div>
+      </div>
+
+      <!-- Peringatan Keandalan jika Terpicu -->
+      <div id="resultNoticeAlert" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-start gap-3 shadow-xs">
+        <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div class="space-y-0.5">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-amber-900">Catatan Keandalan Jawaban</h4>
+          <p class="text-xs sm:text-sm text-amber-900 font-medium" id="resultNoticeText">
+            Jawabanmu sangat seragam atau diselesaikan sangat cepat. Hasil disajikan sebagai referensi awal.
+          </p>
+        </div>
+      </div>
+
+      <!-- 1. KARTU HASIL UTAMA -->
+      <div id="resultHeroCard" class="card-panel p-6 sm:p-8 space-y-6">
+        
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-5 pb-6 border-b border-slate-200">
+          <div class="flex items-start gap-4">
+            <!-- Logo Brand Resmi di Laporan Hasil (Tampil Bersih, Elegan & Tidak Terhimpit) -->
+            <div class="flex items-center justify-center flex-shrink-0 pt-0.5">
+              <img src="logo.png" alt="TalentMatch Simulator" class="h-14 sm:h-16 w-auto object-contain">
+            </div>
+            <div>
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <!-- Modul Tes yang Dipilih (Disesuaikan Otomatis) -->
+                <span id="testTypeBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
+                  Tes Minat Karier & Gaya Kerja
+                </span>
+                <span id="resultBadge" class="px-3 py-0.5 rounded-full text-xs font-bold border">
+                  Profil Dominan
+                </span>
+                <!-- Lencana Profil Hibrida (Aturan Bisnis 2) -->
+                <span id="hybridBadge" class="hidden px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                  Dua Dimensi Setara
+                </span>
+                <span class="text-xs text-slate-400 font-medium" id="resultDate">Nov 2026</span>
+              </div>
+
+              <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight" id="resultTitle">
+                The Analytical Strategist
+              </h2>
+
+              <p class="text-xs sm:text-sm text-slate-600 font-medium mt-1" id="resultGreeting">
+                Hasil asesmen untuk: Kamu
+              </p>
+            </div>
+          </div>
+
+          <!-- Skor Tertinggi Box -->
+          <div id="resultTopScoreBox" class="p-3.5 rounded-xl border flex flex-col justify-center min-w-[145px] text-left">
+            <span class="text-[11px] uppercase font-bold tracking-wider text-slate-500" id="resultScoreHeaderLabel">Skor Tertinggi</span>
+            <span class="text-2xl sm:text-3xl font-black my-0.5" id="resultTopScoreValue">0%</span>
+            <span class="text-xs font-bold" id="resultTopDimensionLabel">Analitis & Logis</span>
+          </div>
+        </div>
+
+        <!-- Gambaran Diri Sesuai Modul Asesmen -->
+        <div class="space-y-1">
+          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider" id="resultNarrativeHeading">Gambaran Gaya Kerjamu</h4>
+          <p class="text-sm text-slate-700 leading-relaxed font-normal" id="resultNarrative">
+            Kamu cenderung memecahkan masalah melalui analisis fakta dan keteraturan sistem...
+          </p>
+        </div>
+
+        <!-- Kombinasi Sinergi -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-1" id="synergyTitle">Kombinasi Sinergi Dua Dimensi</h4>
+          <p class="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium" id="synergyDesc">
+            Memuat sinergi dua gaya kerja teratas...
+          </p>
+        </div>
+
+      </div>
+
+      <!-- 2. RADAR & 4 BILAH SKOR BERWARNA KONSISTEN (HALAMAN 1) -->
+      <div id="radarBarsContainer" class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        
+        <!-- Radar Chart (5 Kolom) -->
+        <div id="radarCard" class="md:col-span-5 card-panel p-6 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider" id="radarTitle">Peta Radar 4 Dimensi</h3>
+              <span class="text-xs text-slate-400">4 Sumbu</span>
+            </div>
+            <div class="w-full aspect-square max-w-[260px] mx-auto flex items-center justify-center py-1">
+              <canvas id="radarChartCanvas"></canvas>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 text-center mt-2" id="radarSub">Proporsi kecenderungan caramu bekerja</p>
+        </div>
+
+        <!-- 4 Bar Skor Berwarna Konsisten (7 Kolom) -->
+        <div id="barsCard" class="md:col-span-7 card-panel p-6 space-y-4">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider" id="scoreDistTitle">Distribusi Skor Tiap Dimensi</h3>
+            <span class="text-xs text-slate-400">Hasil Kalkulasi</span>
+          </div>
+
+          <div class="space-y-3.5 pt-1">
+            
+            <!-- Analitis: Biru #2563EB -->
+            <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 space-y-1.5">
+              <div class="flex justify-between items-center text-xs sm:text-sm font-bold text-blue-900">
+                <span class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                  <span id="dimLabelAnalytical">Analitis & Logis</span>
+                </span>
+                <span id="scoreAnalytical" class="text-blue-700 font-extrabold font-mono text-sm">0%</span>
+              </div>
+              <div class="w-full h-2 bg-blue-200/70 rounded-full overflow-hidden">
+                <div id="barAnalytical" class="h-full bg-blue-600 rounded-full progress-bar-fill" style="width: 0%;"></div>
+              </div>
+              <p class="text-[11px] text-blue-950/80 leading-relaxed font-normal pt-0.5" id="dimDescAnalytical">
+                <strong>Karakteristik:</strong> Berpikir terstruktur, berbasis data terukur, penalaran sebab-akibat, riset objektif, dan efisiensi sistem kerja.
+              </p>
+            </div>
+
+            <!-- Kreatif: Ungu #9333EA -->
+            <div class="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-1.5">
+              <div class="flex justify-between items-center text-xs sm:text-sm font-bold text-purple-900">
+                <span class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                  <span id="dimLabelCreative">Kreatif & Artistik</span>
+                </span>
+                <span id="scoreCreative" class="text-purple-700 font-extrabold font-mono text-sm">0%</span>
+              </div>
+              <div class="w-full h-2 bg-purple-200/70 rounded-full overflow-hidden">
+                <div id="barCreative" class="h-full bg-purple-600 rounded-full progress-bar-fill" style="width: 0%;"></div>
+              </div>
+              <p class="text-[11px] text-purple-950/80 leading-relaxed font-normal pt-0.5" id="dimDescCreative">
+                <strong>Karakteristik:</strong> Berpikir konseptual, kepekaan estetika & visual, eksplorasi ide orisinal di luar kebiasaan, dan fleksibilitas kreasi.
+              </p>
+            </div>
+
+            <!-- Sosial: Hijau Brand #16A34A -->
+            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
+              <div class="flex justify-between items-center text-xs sm:text-sm font-bold text-emerald-900">
+                <span class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                  <span id="dimLabelSocial">Sosial & Kolaboratif</span>
+                </span>
+                <span id="scoreSocial" class="text-emerald-700 font-extrabold font-mono text-sm">0%</span>
+              </div>
+              <div class="w-full h-2 bg-emerald-200/70 rounded-full overflow-hidden">
+                <div id="barSocial" class="h-full bg-emerald-600 rounded-full progress-bar-fill" style="width: 0%;"></div>
+              </div>
+              <p class="text-[11px] text-emerald-950/80 leading-relaxed font-normal pt-0.5" id="dimDescSocial">
+                <strong>Karakteristik:</strong> Komunikasi empatik, menjembatani relasi tim, mendengarkan aktif, dan berorientasi pada dampak positif bagi orang lain.
+              </p>
+            </div>
+
+            <!-- Praktis: Oranye #EA580C -->
+            <div class="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200 space-y-1.5">
+              <div class="flex justify-between items-center text-xs sm:text-sm font-bold text-orange-900">
+                <span class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-orange-600"></span>
+                  <span id="dimLabelPractical">Praktis & Eksploratif</span>
+                </span>
+                <span id="scorePractical" class="text-orange-700 font-extrabold font-mono text-sm">0%</span>
+              </div>
+              <div class="w-full h-2 bg-orange-200/70 rounded-full overflow-hidden">
+                <div id="barPractical" class="h-full bg-orange-600 rounded-full progress-bar-fill" style="width: 0%;"></div>
+              </div>
+              <p class="text-[11px] text-orange-950/80 leading-relaxed font-normal pt-0.5" id="dimDescPractical">
+                <strong>Karakteristik:</strong> Eksekusi lapangan nyata, ketangkasan alat kerja & teknologi terapan, uji coba langsung, dan orientasi hasil nyata.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- PEMBATAS HALAMAN TEGAS (MENJAMIN TEPAT 2 HALAMAN SAAT CETAK / SIMPAN PDF) -->
+      <div class="print-page-break"></div>
+
+      <!-- 3. REKOMENDASI KARIER, JURUSAN & ROADMAP SKILL (HALAMAN 2 CETAK) -->
+      <div id="recommendationsCard" class="card-panel p-6 sm:p-7 space-y-5">
+        
+        <!-- Header Resmi Khusus Halaman 2 Cetak (Disesuaikan Otomatis Sesuai Modul Tes yang Dipilih) -->
+        <div class="print-only print-header-page2 border-b border-slate-200 pb-2 mb-3 items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <img src="logo.png" alt="TalentMatch" class="h-8 w-auto object-contain">
+            <div>
+              <span class="text-xs font-black text-slate-800 uppercase tracking-wider" id="printPage2Title">Laporan Hasil Asesmen • Bagian II</span>
+              <p class="text-[10px] text-slate-500" id="printPage2Sub">Rekomendasi Karier, Jurusan Kuliah & Roadmap Pengembangan</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">Halaman 2 dari 2</span>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider" id="recSectionTitle">Rekomendasi Terarah & Jalur Masa Depan</h3>
+            <p class="text-xs text-slate-500 mt-0.5" id="recSectionDesc">Dihitung otomatis dari kombinasi skor profil dominanmu</p>
+          </div>
+          <!-- Tab switch (3 Tab ala AkuPintar) - Disembunyikan saat cetak -->
+          <div class="no-print flex p-1 rounded-xl bg-slate-100 text-xs font-bold self-start sm:self-auto border border-slate-200 gap-1">
+            <button onclick="switchTab('careers')" id="tabBtnCareers" class="px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-900 font-bold transition">
+              Karier Masa Depan
+            </button>
+            <button onclick="switchTab('majors')" id="tabBtnMajors" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-medium transition">
+              Jurusan Kuliah Terkait
+            </button>
+            <button onclick="switchTab('skills')" id="tabBtnSkills" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-medium transition">
+              Skill & Lingkungan Kerja
+            </button>
+          </div>
+        </div>
+
+        <!-- Wadah Blok Rekomendasi Terpadu (Urutan Ditata Dinamis Berdasarkan Modul Tes) -->
+        <div id="recBlocksWrapper" class="space-y-4">
+          
+          <!-- Blok Rekomendasi Karier -->
+          <div id="blockCareers">
+            <h4 id="titleCareersHeader" class="print-section-title hidden text-xs font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1.5 mb-2.5 items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+              <span>A. Rekomendasi Karier Masa Depan</span>
+            </h4>
+            <div id="tabPanelCareers" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <!-- Diisi via JS -->
+            </div>
+          </div>
+
+          <!-- Blok Rekomendasi Jurusan Kuliah Relevan (Khas AkuPintar) -->
+          <div id="blockMajors">
+            <h4 id="titleMajorsHeader" class="print-section-title hidden text-xs font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1.5 mb-2.5 mt-3 items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+              <span>B. Rekomendasi Program Studi / Jurusan Kuliah</span>
+            </h4>
+            <div id="tabPanelMajors" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <!-- Diisi via JS -->
+            </div>
+          </div>
+
+          <!-- Blok Roadmap Skill & Lingkungan Kerja -->
+          <div id="blockSkills">
+            <h4 id="titleSkillsHeader" class="print-section-title hidden text-xs font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1.5 mb-2.5 mt-3 items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-purple-600"></span>
+              <span>C. Roadmap Pengembangan Skill & Lingkungan Kerja</span>
+            </h4>
+            <div id="tabPanelSkills" class="hidden space-y-4">
+              <div id="skillsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <!-- Diisi via JS -->
+              </div>
+              <div id="idealEnvBox" class="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 text-xs sm:text-sm text-emerald-950">
+                <h5 class="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-1 flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                  <span>Lingkungan Kerja yang Mendukung Potensi Terbaikmu:</span>
+                </h5>
+                <p id="resultIdealEnvironment" class="text-slate-700 leading-relaxed font-medium">Memuat lingkungan kerja ideal...</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer Resmi Halaman 2 Cetak -->
+        <div class="print-only print-footer-page2 pt-2.5 mt-2 border-t border-slate-200 items-center justify-between text-[9px] text-slate-400">
+          <span id="printFooterMeta">TalentMatch Simulator © 2026 • Validitas Instrumen Simulasi Holland-Situasional</span>
+          <span>Dokumen Resmi Hasil Pemetaan Bakat & Minat Mandiri</span>
+        </div>
+
+      </div>
+
+      </div>
+
+      <!-- 4. TOMBOL AKSI BAWAH -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 no-print">
+        <button onclick="confirmResetQuiz()" 
+          class="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Ulangi Asesmen</span>
+        </button>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="window.print()" 
+            class="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span>Cetak / Simpan PDF</span>
+          </button>
+
+          <button onclick="copySummaryText()" 
+            class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition flex items-center gap-1.5 shadow-sm active:scale-98">
+            <svg class="w-3.5 h-3.5 text-emerald-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+            <span>Salin Ringkasan Hasil</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Modal Masuk Peserta Setelah Memilih Tes (Ala AkuPintar) -->
+  <div id="modalParticipantEntry" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="card-panel p-6 sm:p-7 max-w-md w-full space-y-5 shadow-2xl">
+      
+      <!-- Header Modal -->
+      <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+        <div class="flex items-center gap-3">
+          <img src="logo.png" alt="TalentMatch" class="h-10 sm:h-11 w-auto object-contain flex-shrink-0">
+          <div>
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded" id="entryModalTag">
+              Holland + Situasional
+            </span>
+            <h3 class="text-base font-extrabold text-slate-900 leading-snug mt-0.5" id="entryModalTitle">
+              Tes Minat Karier & Gaya Kerja
+            </h3>
+          </div>
+        </div>
+        <button onclick="closeParticipantModal()" class="text-slate-400 hover:text-slate-700 text-sm font-bold p-1">
+          ✕
+        </button>
+      </div>
+
+      <!-- Panduan Pengerjaan Singkat -->
+      <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1.5 font-normal">
+        <div class="flex items-center gap-2 font-bold text-slate-800">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Instruksi Asesmen (10 Soal • ±3 Menit)</span>
+        </div>
+        <p>Tidak ada jawaban benar atau salah. Pilihlah respon yang paling spontan mencerminkan caramu bertindak dalam dunia nyata.</p>
+      </div>
+
+      <!-- Input Nama Panggilan -->
+      <div>
+        <label for="userNameInput" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+          Nama Panggilanmu (Opsional)
+        </label>
+        <input type="text" id="userNameInput" placeholder="Ketik nama panggilanmu (misal: Budi / Siti)" 
+          class="w-full px-4 py-3.5 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-base font-medium text-slate-900 placeholder:text-slate-400 bg-white transition"
+          onkeydown="if(event.key === 'Enter') startNewQuiz()">
+        <p class="text-[11px] text-slate-400 mt-1.5">Nama digunakan untuk mencantumkan identitas pada sertifikat laporan hasil.</p>
+      </div>
+
+      <!-- Tombol Aksi -->
+      <div class="flex gap-2.5 pt-1">
+        <button onclick="closeParticipantModal()" class="px-4 py-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition">
+          Pilih Tes Lain
+        </button>
+        <button onclick="startNewQuiz()" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-sm active:scale-98">
+          <span>Mulai Kerjakan Soal</span>
+          <svg class="w-4 h-4 text-emerald-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal Konfirmasi Mulai Ulang (Aturan Bisnis 4) -->
+  <div id="modalResetConfirm" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="card-panel p-6 max-w-sm w-full text-center space-y-4 shadow-xl">
+      <div class="w-10 h-10 mx-auto rounded-full bg-slate-100 text-slate-700 flex items-center justify-center">
+        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      </div>
+      <div class="space-y-1">
+        <h3 class="text-sm font-bold text-slate-900">Mulai Ulang Asesmen?</h3>
+        <p class="text-xs text-slate-500 font-normal">
+          Jawaban dan progres yang sudah terisi saat ini akan dihapus dari penyimpanan.
+        </p>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="closeResetModal()" class="flex-1 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition">
+          Batal
+        </button>
+        <button onclick="executeResetQuiz()" class="flex-1 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition">
+          Ya, Mulai Ulang
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Bersih & Rapi -->
+  <footer class="w-full max-w-4xl mx-auto px-6 py-4 text-center text-xs text-slate-400 font-normal no-print border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <div class="w-4 h-4 rounded bg-slate-900 flex items-center justify-center text-white">
+        <svg class="w-2.5 h-2.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <span>TalentMatch Simulator • Asesmen Minat & Gaya Kerja Mandiri</span>
+    </div>
+    <p>© 2026 TalentMatch Simulator</p>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-16 opacity-0 transition-all duration-200 pointer-events-none px-4 py-2.5 rounded-lg bg-slate-900 text-white text-xs font-semibold shadow-lg flex items-center gap-2">
+    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+    <span id="toastMessage">Tersalin ke clipboard</span>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- JAVASCRIPT: LOGIKA & WARNA KONSISTEN           -->
+  <!-- ============================================== -->
+  <script>
+    /* -------------------------------------------------------------
+       1. DATA SOAL SITUASIONAL (UNIVERSAL & ALAMI)
+       ------------------------------------------------------------- */
+    const rawQuestions = [
+      {
+        id: 1,
+        category: "Inisiasi Proyek",
+        question: "Saat tim memulai inisiatif proyek baru, hal apa yang paling spontan menarik perhatianmu?",
+        options: [
+          {
+            dimension: "analytical",
+            text: "Mengurai data acuan, menetapkan indikator keberhasilan yang terukur, dan merancang alur kerja yang logis.",
+            scores: { analytical: 3, creative: 0, social: 1, practical: 1 }
+          },
+          {
+            dimension: "creative",
+            text: "Mengeksplorasi ide-ide segar, merancang konsep visual, dan memikirkan pembeda yang belum ada sebelumnya.",
+            scores: { analytical: 0, creative: 3, social: 1, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "Menyelaraskan ekspektasi rekan tim, mengenali kekuatan masing-masing, dan membangun semangat kerja sama.",
+            scores: { analytical: 1, creative: 1, social: 3, practical: 0 }
+          },
+          {
+            dimension: "practical",
+            text: "Menyiapkan alat dan perlengkapan teknis, memastikan kesiapan bahan kerja, dan segera membuat contoh nyata.",
+            scores: { analytical: 1, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      },
+      {
+        id: 2,
+        category: "Pemecahan Masalah",
+        question: "Ketika menghadapi kendala yang belum pernah kamu temui sebelumnya, langkah awal yang kamu ambil adalah...",
+        options: [
+          {
+            dimension: "analytical",
+            text: "Mengumpulkan data terkait, menelusuri alur sebab-akibat, dan mencari akar permasalahannya secara teratur.",
+            scores: { analytical: 3, creative: 0, social: 0, practical: 1 }
+          },
+          {
+            dimension: "creative",
+            text: "Mencari sudut pandang alternatif dan memikirkan solusi kreatif di luar cara-cara konvensional.",
+            scores: { analytical: 0, creative: 3, social: 1, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "Mengajak rekan kerja berdiskusi santai untuk menampung pandangan dan saran dari berbagai sisi.",
+            scores: { analytical: 0, creative: 1, social: 3, practical: 0 }
+          },
+          {
+            dimension: "practical",
+            text: "Melakukan uji coba langsung satu per satu di lapangan hingga menemukan metode yang terbukti berjalan.",
+            scores: { analytical: 1, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      },
+      {
+        id: 3,
+        category: "Minat Eksplorasi",
+        question: "Topik atau materi bacaan kerja yang paling cepat menyerap fokus dan minat bacamu adalah...",
+        options: [
+          {
+            dimension: "analytical",
+            text: "Laporan riset pasar berbasis angka, analisis efisiensi proses, dan kajian data statistik terverifikasi.",
+            scores: { analytical: 3, creative: 0, social: 0, practical: 1 }
+          },
+          {
+            dimension: "creative",
+            text: "Kajian desain estetika, eksplorasi gaya visual modern, dan narasi konsep yang memikat imajinasi publik.",
+            scores: { analytical: 0, creative: 3, social: 1, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "Psikologi kepemimpinan, dinamika relasi dalam tim, dan seni komunikasi efektif untuk mempengaruhi orang lain.",
+            scores: { analytical: 0, creative: 0, social: 3, practical: 1 }
+          },
+          {
+            dimension: "practical",
+            text: "Panduan teknis langkah demi langkah, ulasan perangkat kerja terbaru, dan tips ketangkasan eksekusi praktis.",
+            scores: { analytical: 1, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      },
+      {
+        id: 4,
+        category: "Peran dalam Tim",
+        question: "Dalam tim kerja, peran mana yang membuat kemampuan terbaikmu terasa paling bermanfaat bagi orang lain?",
+        options: [
+          {
+            dimension: "analytical",
+            text: "Sebagai perumus strategi: Memastikan seluruh keputusan didasari data objektif dan pertimbangan logis yang matang.",
+            scores: { analytical: 3, creative: 0, social: 1, practical: 1 }
+          },
+          {
+            dimension: "creative",
+            text: "Sebagai konseptor kreatif: Menentukan identitas estetika, sentuhan artistik, dan pembeda yang unik.",
+            scores: { analytical: 0, creative: 3, social: 1, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "Sebagai fasilitator tim: Menjembatani hubungan antar anggota, memotivasi rekan, dan menjaga kekompakan kelompok.",
+            scores: { analytical: 0, creative: 1, social: 3, practical: 0 }
+          },
+          {
+            dimension: "practical",
+            text: "Sebagai eksekutor teknis: Bertanggung jawab merealisasikan rancangan menjadi wujud kerja nyata yang berfungsi baik.",
+            scores: { analytical: 1, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      },
+      {
+        id: 5,
+        category: "Lingkungan Kerja",
+        question: "Suasana kerja seperti apa yang membuat energi dan produktivitas kerjamu berkembang paling pesat?",
+        options: [
+          {
+            dimension: "analytical",
+            text: "Suasana tenang dan teratur, di mana setiap argumen dihargai berdasarkan fakta dan penalaran rasional.",
+            scores: { analytical: 3, creative: 0, social: 0, practical: 1 }
+          },
+          {
+            dimension: "creative",
+            text: "Ruang kerja ekspresif dan fleksibel, dengan kebebasan tinggi untuk berkreasi tanpa batasan aturan kaku.",
+            scores: { analytical: 0, creative: 3, social: 1, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "Kultur kerja yang hangat dan terbuka, sarat interaksi suportif, dan saling mendukung pertumbuhan sesama rekan.",
+            scores: { analytical: 0, creative: 1, social: 3, practical: 0 }
+          },
+          {
+            dimension: "practical",
+            text: "Lingkungan yang gesit dan berorientasi hasil, minim diskusi berlarut-larut, dan fokus pada pengerjaan nyata.",
+            scores: { analytical: 1, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      },
+      {
+        id: 6,
+        category: "Standar Kepuasan",
+        question: "Kamu merasa sebuah pekerjaan benar-benar selesai dengan kualitas istimewa ketika...",
+        options: [
+          {
+            dimension: "analytical",
+            text: "Hasil akhir terbukti akurat, rapi tanpa kesalahan kalkulasi, dan alur sistem bekerja sangat efisien.",
+            scores: { analytical: 3, creative: 0, social: 0, practical: 1 }
+          },
+          {
+            dimension: "creative",
+            text: "Karya yang dihasilkan memiliki ciri khas yang kuat, tampak memukau, dan memicu decak kagum orang lain.",
+            scores: { analytical: 0, creative: 3, social: 1, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "Pengguna merasa sangat terbantu dan hubungan kerja sama tim menjadi jauh lebih akrab dan solid.",
+            scores: { analytical: 0, creative: 0, social: 3, practical: 1 }
+          },
+          {
+            dimension: "practical",
+            text: "Produk atau solusi tersebut langsung dapat digunakan dengan tangguh di lapangan tanpa ada kendala.",
+            scores: { analytical: 1, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      },
+      {
+        id: 7,
+        category: "Aktivitas Santai",
+        question: "Di waktu istirahat atau akhir pekan, aktivitas mandiri mana yang paling menyegarkan kembali pikiranmu?",
+        options: [
+          {
+            dimension: "analytical",
+            text: "Bermain puzzle strategi, catur, menganalisis teka-teki logika, atau mempelajari wawasan baru.",
+            scores: { analytical: 3, creative: 1, social: 0, practical: 0 }
+          },
+          {
+            dimension: "creative",
+            text: "Menggambar, menikmati seni visual, mendengarkan musik baru, fotografi, atau merancang karya kreatif.",
+            scores: { analytical: 0, creative: 3, social: 1, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "Mengobrol akrab bersama teman dekat, berkegiatan sosial di komunitas, atau berdiskusi topik kehidupan.",
+            scores: { analytical: 0, creative: 0, social: 3, practical: 0 }
+          },
+          {
+            dimension: "practical",
+            text: "Membongkar dan merawat perkakas, merakit barang, mencoba keterampilan tangan baru, atau berkebun.",
+            scores: { analytical: 0, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      },
+      {
+        id: 8,
+        category: "Mengevaluasi Usulan",
+        question: "Ketika seseorang mengajukan usulan ide terobosan, hal pertama yang spontan kamu perhatikan adalah...",
+        options: [
+          {
+            dimension: "analytical",
+            text: "Kebenaran data pendukung, kejelasan metodologi, dan seberapa kuat hubungan sebab-akibat argumennya.",
+            scores: { analytical: 3, creative: 0, social: 0, practical: 0 }
+          },
+          {
+            dimension: "creative",
+            text: "Keunikan ide dibanding apa yang sudah ada di pasaran serta daya tarik emosional dari konsep tersebut.",
+            scores: { analytical: 0, creative: 3, social: 0, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "Bagaimana ide tersebut akan diterima oleh orang banyak dan apakah tim mampu menjalankannya dengan nyaman.",
+            scores: { analytical: 0, creative: 0, social: 3, practical: 0 }
+          },
+          {
+            dimension: "practical",
+            text: "Seberapa realistis ide tersebut diwujudkan secara nyata, kesiapan alatnya, dan berapa waktu yang dibutuhkan.",
+            scores: { analytical: 1, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      },
+      {
+        id: 9,
+        category: "Adaptasi Alat Baru",
+        question: "Saat diperkenalkan pada alat kerja atau software baru di tempat kerja, respon spontanmu adalah...",
+        options: [
+          {
+            dimension: "analytical",
+            text: "Mempelajari susunan fungsi dan panduannya untuk memahami cara kerja sistemnya secara terstruktur.",
+            scores: { analytical: 3, creative: 0, social: 0, practical: 1 }
+          },
+          {
+            dimension: "creative",
+            text: "Mengevaluasi tampilan dan keunikan fiturnya serta membayangkan hal kreatif apa yang bisa dibuat dengannya.",
+            scores: { analytical: 0, creative: 3, social: 0, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "Mendiskusikannya bersama rekan kerja untuk saling bertukar tips dan mencari cara paling praktis bersama.",
+            scores: { analytical: 0, creative: 0, social: 3, practical: 0 }
+          },
+          {
+            dimension: "practical",
+            text: "Langsung mencoba tombol-tombol fungsinya secara mandiri untuk menguji kemampuannya di kondisi nyata.",
+            scores: { analytical: 0, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      },
+      {
+        id: 10,
+        category: "Prinsip Bekerja",
+        question: "Prinsip mana yang paling merefleksikan caramu memandang keberhasilan sebuah pekerjaan?",
+        options: [
+          {
+            dimension: "analytical",
+            text: "\"Data terverifikasi dan ketelitian nalar adalah landasan terkuat dalam mengambil keputusan bijak.\"",
+            scores: { analytical: 3, creative: 0, social: 0, practical: 1 }
+          },
+          {
+            dimension: "creative",
+            text: "\"Inovasi sejati berakar dari keberanian mengeksplorasi sudut pandang unik yang belum terpikirkan orang lain.\"",
+            scores: { analytical: 0, creative: 3, social: 1, practical: 0 }
+          },
+          {
+            dimension: "social",
+            text: "\"Keberhasilan pekerjaan pada akhirnya ditentukan oleh seberapa besar manfaatnya bagi kebaikan bersama.\"",
+            scores: { analytical: 0, creative: 0, social: 3, practical: 0 }
+          },
+          {
+            dimension: "practical",
+            text: "\"Rencana di atas kertas hanya akan bernilai saat diuji lewat ketangguhan tindakan dan bukti nyata di lapangan.\"",
+            scores: { analytical: 1, creative: 0, social: 0, practical: 3 }
+          }
+        ]
+      }
+    ];
+
+    /* -------------------------------------------------------------
+       2. METADATA 4 DIMENSI (DIPERKAYA REKOMENDASI KARIER & JURUSAN ALA AKUPINTAR)
+       ------------------------------------------------------------- */
+    
+    /* Soal Khusus Modul Dinamika Tim & Kolaborasi */
+    const teamQuestions = [
+    {
+        "id": 101,
+        "category": "Inisiasi Kolaborasi",
+        "question": "Saat timmu baru menerima proyek kolaborasi baru dari pimpinan, hal pertama apa yang paling spontan kamu lakukan?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Membedah target metrik keberhasilan, menganalisis potensi risiko hambatan, dan menyusun peta jalan kerja terstruktur.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 1,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Mengadakan sesi brainstorming visual untuk menggali ide-ide kreatif dan konsep pembeda yang unik bagi proyek.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Mengumpulkan seluruh anggota untuk mendengar ekspektasi masing-masing dan memastikan semua merasa nyaman dengan perannya.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Segera menyiapkan checklist alat kerja teknis, membagi tugas nyata, dan langsung mulai menguji prototipe kerja awal.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 102,
+        "category": "Distribusi Tugas Kelompok",
+        "question": "Bagaimana pendekatanmu dalam membagi porsi kerja di dalam kelompok agar kerja sama tim berjalan efektif?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Menganalisis matriks keahlian tiap orang secara objektif dan membagi beban kerja secara adil berbasis data kapasitas.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Memberikan keleluasaan bagi tiap anggota untuk memilih peran yang paling memantik inspirasi dan ide segar mereka.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Mengajak diskusi terbuka agar tiap orang memilih tugas yang sesuai minat dan kenyamanan hubungan kerja mereka.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Membagi tugas berdasarkan langkah-langkah kerja teknis yang konkret dan langsung bisa dieksekusi hari ini.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 103,
+        "category": "Silang Pendapat Tim",
+        "question": "Saat dua rekan kerjamu berdebat sengit mengenai arah keputusan tim, respon apa yang paling mencerminkan dirimu?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Mengajak keduanya menguji argumen masing-masing dengan data objektif dan tolok ukur fakta logis yang netral.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Mencari jalan keluar ketiga yang segar dan inovatif, memadukan keunggulan kedua ide menjadi konsep baru.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Menjadi penengah yang mendengarkan perasaan kedua pihak, meredakan ketegangan, dan mencari titik temu yang rukun.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 0,
+                    "social": 3,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Mengajak tim menguji coba kedua opsi dalam skala kecil dengan cepat untuk membuktikan mana yang benar-benar berhasil.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 104,
+        "category": "Peran Alami Kelompok",
+        "question": "Di dalam dinamika kelompok kerja, kontribusi mana yang paling merefleksikan peran alamimu?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Pilar Strategist: Penjaga kualitas logika, pengkaji risiko, dan penentu arah berbasis analisis fakta objektif.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 1,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Pilar Innovator: Pembawa ide segar, pengonsep visi visual, dan pencetus solusi kreatif saat tim mengalami kebuntuan.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Pilar Harmonizer: Perekat keakraban tim, fasilitator komunikasi yang empatik, dan penjaga semangat kebersamaan.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Pilar Implementer: Penggerak aksi lapangan, pengatur ritme eksekusi teknis, dan pemasti target selesai tepat waktu.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 105,
+        "category": "Menghadapi Anggota Pasif",
+        "question": "Jika ada anggota tim yang tampak pendiam atau pasif selama sesi diskusi kelompok, bagaimana caramu meresponnya?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Memberikannya pertanyaan spesifik terarah terkait data atau analisis bagian yang sedang menjadi tanggung jawabnya.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Mengajaknya bereksplorasi lewat papan ide digital atau sketsa visual yang tidak membebaninya bicara di depan umum.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Mendekatinya secara personal dengan hangat, menanyakan kabarnya, dan memberi ruang aman baginya untuk bersuara.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Langsung memberinya peran kerja teknis yang jelas dan terukur agar ia bisa langsung terlibat dalam aksi nyata.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 106,
+        "category": "Ritme Menjelang Deadline",
+        "question": "Ketika tenggat waktu proyek tim tinggal sedikit dan beban kerja masih tinggi, kamu berfokus pada...",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Meninjau kembali prioritas pekerjaan secara analitis dan memangkas tugas yang dampaknya rendah terhadap hasil akhir.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Mencari cara pintas kreatif dan sudut pandang baru yang mempermudah penyampaian solusi tanpa mengorbankan kualitas.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Menyemangati rekan kerja, memesankan konsumsi/rehat sejenak, dan memastikan tidak ada anggota tim yang kelelahan.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Turun tangan langsung mengerjakan bagian yang terhambat dan mendampingi penyelesaian teknis di garis depan.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 107,
+        "category": "Penyampaian Masukan Tim",
+        "question": "Bagaimana caramu menyampaikan umpan balik atau koreksi terhadap hasil kerja rekan satu tim?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Menunjukkan poin koreksi berbasis data, kriteria objektif, dan rincian perbaikan yang sistematis.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Mengapresiasi usahanya lalu menawarkan beberapa alternatif konsep baru yang lebih menarik untuk dieksplorasi.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Menyampaikannya secara empatik dan privat, diawali pujian tulus, agar ia merasa didukung bukan diserang.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 0,
+                    "social": 3,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Langsung menunjukkan bagian yang perlu diperbaiki secara langsung dan mencontohkan cara mengerjakannya.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 108,
+        "category": "Perubahan Rencana Mendadak",
+        "question": "Ketika pimpinan tiba-tiba merombak rencana proyek tim di tengah jalan, respon tim yang kamu dorong adalah...",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Mengkalkulasi ulang dampak perubahan terhadap jadwal, anggaran, dan risiko sebelum mengambil langkah baru.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Menyambutnya sebagai peluang untuk menerapkan ide-ide baru yang jauh lebih keren daripada rencana lama.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Menjaga moral tim agar tidak kecewa atau panik, serta memastikan komunikasi antar anggota tetap terbuka dan solid.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Segera menghentikan proses lama, menyusun langkah teknis baru, dan langsung tancap gas beradaptasi di lapangan.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 109,
+        "category": "Mendampingi Anggota Baru",
+        "question": "Saat timmu kedatangan anggota magang atau rekan baru yang belum memahami alur kerja kelompok, kamu akan...",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Memberikan dokumen SOP lengkap, panduan sistem kerja, dan metrik penilaian yang jelas untuk dipelajari.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Mengajaknya memahami visi besar tim, budaya kreatif, dan mendorongnya berani mengutarakan gagasan segar.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Menyambutnya dengan ramah, mengenalkannya ke seluruh tim, dan menjadi teman diskusi yang siap mendampinginya.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Langsung mengajaknya mendampingi pengerjaan tugas nyata sehari-hari agar ia lekas terbiasa dengan perkakas kerja.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 110,
+        "category": "Nilai Kolaborasi Tim",
+        "question": "Nilai mana yang menurutmu paling menjadi fondasi keberhasilan sebuah tim kolaboratif?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "\"Kejelasan arah, ketepatan analisis data, dan struktur kerja yang rapi adalah kunci keberhasilan tim.\"",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 1,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "\"Keberanian berinovasi dan kebebasan mengekspresikan ide-ide orisinal membuat tim selalu selangkah di depan.\"",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "\"Rasa saling percaya, komunikasi terbuka, dan kepedulian antar sesama anggota adalah jiwa dari sebuah tim yang kuat.\"",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 0,
+                    "social": 3,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "\"Kompak dalam tindakan nyata, tangguh di lapangan, dan konsisten menuntaskan hasil adalah pembuktian tim terbaik.\"",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    }
+];
+
+    /* Soal Khusus Modul Eksplorasi Jurusan Kuliah */
+    const academicQuestions = [
+    {
+        "id": 201,
+        "category": "Minat Topik Studi",
+        "question": "Topik kajian atau mata kuliah universitas yang paling membuatmu penasaran untuk kamu bedah lebih dalam adalah...",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Algoritma komputasi, pemodelan sains data, analisis matematis, dan rekayasa logika sistem cerdas.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 1,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Desain komunikasi visual, estetika arsitektur, seni media baru, dan penulisan narasi kreatif.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Psikologi perilaku manusia, sosiologi masyarakat, hubungan internasional, dan dinamika kepemimpinan publik.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Mekatronika terapan, rekayasa robotika praktis, otomasi industri, dan teknologi rekayasa lapangan.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 202,
+        "category": "Format Tugas Favorit",
+        "question": "Jika dosen membebaskan format tugas akhir semester, bentuk karya akademik apa yang paling antusias kamu kerjakan?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Laporan riset kuantitatif mendalam lengkap dengan olahan grafik statistik dan pembuktian logika rasional.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Portofolio karya visual, konsep branding interaktif, atau prototipe pengalaman multimedia yang memikat.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Studi kasus wawancara mendalam dengan masyarakat dan analisis dinamika perilaku sosial komunitas.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Merakit purwarupa perangkat keras, aplikasi fungsional siap pakai, atau simulasi alat kerja di lab.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 203,
+        "category": "Materi Kuliah Abstrak",
+        "question": "Saat harus mempelajari materi teori perkuliahan yang sangat rumit dan abstrak, caramu menguasainya adalah...",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Membedah struktur logikanya lapis demi lapis hingga menemukan rumus dan korelasi sebab-akibatnya.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Menggambar mind-map visual berwarna, membuat analogi metafora, dan menyederhanakannya lewat sketsa grafis.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Membentuk kelompok belajar bersama teman untuk berdiskusi, saling menjelaskan, dan bertukar wawasan.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 0,
+                    "social": 3,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Mencari contoh penerapannya di dunia nyata atau langsung mencoba simulasinya di komputer/perangkat.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 204,
+        "category": "Organisasi Kampus",
+        "question": "Kegiatan organisasi kemahasiswaan atau unit kegiatan kampus mana yang paling menarik minatmu?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Klub sains data, komunitas riset ilmiah, atau kompetisi analisis debat logika dan strategi kebijakan.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 1,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Unit pers/media kreatif kampus, agensi desain mahasiswa, atau sanggar kreasi seni dan sinematografi.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Himpunan mahasiswa relawan sosial, forum advokasi kemahasiswaan, atau kepanitiaan relasi publik.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Komunitas robotika kampus, bengkel rekayasa mesin, atau riset vokasi teknologi rekayasa lapangan.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 205,
+        "category": "Gaya Belajar Mandiri",
+        "question": "Di perpustakaan atau ruang belajar mandiri, metode belajar mana yang paling efektif bagimu?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Membaca jurnal rujukan terpercaya, membandingkan data angka, dan menyusun intisari penalaran sistematis.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Membayangkan bagaimana konsep tersebut dapat dikembangkan menjadi sebuah karya atau ide baru yang orisinal.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Mendengarkan rekaman diskusi, podcast dosen ahli, atau belajar sambil menjelaskan kembali ke teman sejawat.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Mengerjakan latihan soal praktis berulang kali dan melakukan uji coba langsung tanpa membaca teori lama-lama.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 206,
+        "category": "Dosen & Mentor Inspiratif",
+        "question": "Gaya mengajar dosen yang paling kamu kagumi dan membuatmu terinspirasi di kelas adalah...",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Dosen yang sangat teliti, menguasai data akurat, menguji nalar kritis mahasiswa, dan argumennya terstruktur.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Dosen yang berpikiran visioner, menyajikan studi kasus kreatif unik, dan menantang mahasiswa berani beda.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Dosen yang hangat, interaktif, pintar merangkul mahasiswa, dan mengaitkan materi dengan empati kehidupan.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 0,
+                    "social": 3,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Dosen praktisi industri yang banyak bercerita pengalaman nyata lapangan dan mengajak mahasiswa langsung praktik.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 207,
+        "category": "Fasilitas Kampus Impian",
+        "question": "Fasilitas kampus universitas mana yang paling sering ingin kamu datangi untuk menghabiskan waktu studi?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Pusat komputasi super, lab statistik riset, dan perpustakaan digital berakses jurnal internasional.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Studio kreatif multimedia, workshop desain grafis & animasi, serta ruang pameran instalasi seni.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Ruang diskusi kolaboratif, amfiteater forum publik, dan student center yang kaya interaksi sosial.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Laboratorium mekatronika terapan, bengkel rekayasa presisi, dan simulator teknologi mutakhir.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 208,
+        "category": "Persiapan Ujian Semester",
+        "question": "Bagaimana cara persiapan yang paling membuatmu merasa percaya diri sebelum pekan ujian semester?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Menyusun catatan rumus sistematis, memetakan konsep kunci, dan memastikan tidak ada celah logika nalar.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Membuat rangkuman visual berwarna-warni yang membantu imajinasi mengingat peta konsep secara menyeluruh.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Mengadakan sesi bedah kisi-kisi soal bersama rekan sejawat dan saling menguji pemahaman bersama.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Fokus berlatih mengerjakan simulasi soal tahun lalu dan langsung mengoreksi kekeliruan teknis pengerjaan.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 209,
+        "category": "Proyek Skripsi Kelulusan",
+        "question": "Jika membayangkan tugas akhir kelulusan nanti, karya akademik apa yang paling membanggakan bagimu?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "Memublikasikan riset penemuan model prediksi baru yang dikutip dan diakui secara akademis.",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "Menciptakan karya desain produk inovatif atau kampanye visual yang memenangkan penghargaan kreatif bergengsi.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "Menulis kajian yang menghasilkan rekomendasi solusi nyata bagi kemajuan kesejahteraan komunitas masyarakat.",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 1,
+                    "social": 3,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "Merancang purwarupa teknologi terapan yang langsung dapat dipatenkan dan digunakan oleh industri nyata.",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    },
+    {
+        "id": 210,
+        "category": "Motivasi Berkuliah",
+        "question": "Apa tujuan dan motivasi terdalammu menempuh pendidikan di jenjang perguruan tinggi?",
+        "options": [
+            {
+                "dimension": "analytical",
+                "text": "\"Mengasah ketajaman nalar kritis, memahami kebenaran ilmiah secara mendalam, dan menjadi ahli di bidang analitis.\"",
+                "scores": {
+                    "analytical": 3,
+                    "creative": 0,
+                    "social": 1,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "creative",
+                "text": "\"Menemukan suara estetika orisinal, memperkaya daya cipta kreatif, dan menghasilkan karya-karya terobosan baru.\"",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 3,
+                    "social": 1,
+                    "practical": 0
+                }
+            },
+            {
+                "dimension": "social",
+                "text": "\"Membangun jejaring koneksi bermakna, memahami karakter manusia, dan memberi kontribusi bagi kemajuan sosial.\"",
+                "scores": {
+                    "analytical": 0,
+                    "creative": 0,
+                    "social": 3,
+                    "practical": 1
+                }
+            },
+            {
+                "dimension": "practical",
+                "text": "\"Menguasai keahlian teknis terapan yang siap pakai, mahir mengoperasikan teknologi, dan langsung berdaya di lapangan.\"",
+                "scores": {
+                    "analytical": 1,
+                    "creative": 0,
+                    "social": 0,
+                    "practical": 3
+                }
+            }
+        ]
+    }
+];
+
+    /* Bank Soal Terpadu per Modul Asesmen */
+    const questionsByTestType = {
+      "career-style": rawQuestions,
+      "team-dynamics": teamQuestions,
+      "academic-pathway": academicQuestions
+    };
+
+    const dimensionMeta = {
+      analytical: {
+        id: "analytical",
+        label: "Analitis & Logis",
+        shortLabel: "Analitis",
+        hexColor: "#2563EB",
+        badgeClass: "bg-blue-50 text-blue-800 border-blue-200",
+        scoreBoxClass: "border-blue-200 bg-blue-50/60 text-blue-900",
+        title: "The Analytical Strategist",
+        narrative: "Kamu cenderung melihat dunia secara teratur, rasional, dan berbasis bukti. Kekuatan utamamu terletak pada kecermatan membedah fakta, menimbang keputusan berdasarkan data nyata, serta membangun alur kerja yang efisien dan minim kesalahan.",
+        synergies: {
+          creative: "Perpaduan Analitis dan Kreatif menjadikanmu sosok Strategic Innovator: Mampu merumuskan ide-ide terobosan yang tetap berpijak pada kelayakan data dan riset nyata.",
+          social: "Perpaduan Analitis dan Sosial menjadikanmu sosok Data-Informed Leader: Mengarahkan tim dengan kejelasan data objektif yang dibawakan dengan pendekatan manusiawi.",
+          practical: "Perpaduan Analitis dan Praktis menjadikanmu sosok Systems Architect: Ahli merancang cetak biru rencana yang rapi sekaligus mengeksekusinya di lapangan tanpa celah."
+        },
+        careers: [
+          { role: "Analis Data & Riset Operasional", desc: "Membaca pola tren angka untuk memandu keputusan strategis organisasi." },
+          { role: "Arsitek Sistem & Rekayasa Logika", desc: "Merancang logika alur data dan struktur backend yang andal dan terukur." },
+          { role: "Perencana Strategi Produk / Bisnis", desc: "Memetakan target keberhasilan kerja dan menjaga efisiensi proses tim." }
+        ],
+        majors: [
+          { name: "Teknik Informatika & Ilmu Komputer", desc: "Mempelajari pemodelan algoritma cerdas, rekayasa logika software, dan arsitektur komputasi." },
+          { name: "Statistika & Sains Data", desc: "Mendalami analisis probabilitas, machine learning, dan pemodelan prediktif berbasis data." },
+          { name: "Sistem Informasi Bisnis", desc: "Menghubungkan efisiensi proses bisnis dengan integrasi tata kelola teknologi informasi." },
+          { name: "Teknik Industri & Riset Operasi", desc: "Mengoptimalkan rantai nilai, tata kelola manajemen mutu, dan efisiensi sistem kerja." }
+        ],
+        skills: [
+          { title: "Analisis Data & Riset Logika", desc: "Keterampilan mengolah informasi dan membedah korelasi angka secara objektif." },
+          { title: "Penelusuran Akar Masalah (Root Cause)", desc: "Metodologi sistematis untuk menemukan pemicu masalah hingga tuntas." },
+          { title: "Optimasi Efisiensi Kerja", desc: "Mendeteksi proses yang bertele-tele dan menyusun alur kerja yang lebih ramping." },
+          { title: "Manajemen Risiko Terukur", desc: "Memperkirakan kemungkinan hambatan sebelum melangkah ke eksekusi." }
+        ],
+        idealEnvironment: "Lingkungan kerja yang tenang, terstruktur, menghargai fakta objektif, dan memberi ruang untuk analisis mendalam tanpa interupsi berlebih."
+      },
+      creative: {
+        id: "creative",
+        label: "Kreatif & Artistik",
+        shortLabel: "Kreatif",
+        hexColor: "#9333EA",
+        badgeClass: "bg-purple-50 text-purple-800 border-purple-200",
+        scoreBoxClass: "border-purple-200 bg-purple-50/60 text-purple-900",
+        title: "The Visionary Designer",
+        narrative: "Kamu memiliki imajinasi konseptual yang luas, kepekaan estetika yang tajam, dan keberanian berekspresi. Kamu unggul dalam menemukan solusi dari sudut pandang yang tak terpikirkan sebelumnya dan menyajikannya secara memikat.",
+        synergies: {
+          analytical: "Perpaduan Kreatif dan Analitis menjadikanmu sosok Creative Technologist: Memadukan keindahan pengalaman visual dengan fondasi logika sistem yang kokoh.",
+          social: "Perpaduan Kreatif dan Sosial menjadikanmu sosok Experience Storyteller: Menggerakkan hati audiens lewat konsep narasi dan visual yang sarat makna.",
+          practical: "Perpaduan Kreatif dan Praktis menjadikanmu sosok Rapid Prototyper: Cekatan mengubah sketsa ide abstrak menjadi wujud fisik yang siap diuji coba."
+        },
+        careers: [
+          { role: "Desainer Pengalaman Pengguna (UI/UX)", desc: "Merancang interaksi aplikasi digital yang intuitif, nyaman, dan memikat pengguna." },
+          { role: "Pengarah Kreatif & Brand Strategist", desc: "Menentukan karakter visual, identitas produk, dan pesan emosional kampanye." },
+          { role: "Desainer Konten & Media Visual", desc: "Menciptakan media presentasi, ilustrasi, dan aset visual berkualitas tinggi." }
+        ],
+        majors: [
+          { name: "Desain Komunikasi Visual (DKV)", desc: "Mempelajari perancangan bahasa visual, tata letak grafis, UI/UX, dan storytelling brand." },
+          { name: "Desain Produk & Interaksi", desc: "Mengembangkan inovasi produk baru dengan perpaduan ergonomi, fungsionalitas, dan estetika." },
+          { name: "Animasi & Media Digital Interaktif", desc: "Mengeksplorasi karya gerak multimedia, efek visual, dan pengalaman interaktif masa depan." },
+          { name: "Ilmu Komunikasi & Periklanan Kreatif", desc: "Merumuskan strategi pesan kampanye kreatif dan narasi emosional yang menyentuh audiens." }
+        ],
+        skills: [
+          { title: "Desain Pengalaman Pengguna (UX)", desc: "Menyusun tata letak antarmuka yang ergonomis dan mudah dipahami." },
+          { title: "Eksplorasi Ide Orisinal", desc: "Metode menggali ratusan alternatif konsep sebelum memilih yang terbaik." },
+          { title: "Visual Storytelling", desc: "Menyampaikan gagasan kompleks lewat metafora dan grafis yang mudah dipahami." },
+          { title: "Pembuatan Prototipe Cepat", desc: "Merakit simulasi interaktif untuk menguji reaksi pengguna sedini mungkin." }
+        ],
+        idealEnvironment: "Kultur kerja yang fleksibel, kaya ruang eksplorasi ide baru, terbuka pada eksperimen berani, dan minim birokrasi kaku."
+      },
+      social: {
+        id: "social",
+        label: "Sosial & Kolaboratif",
+        shortLabel: "Sosial",
+        hexColor: "#16A34A",
+        badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
+        scoreBoxClass: "border-emerald-200 bg-emerald-50/60 text-emerald-900",
+        title: "The Collaborative Catalyst",
+        narrative: "Kamu memiliki kecerdasan empati yang tinggi dan kemampuan alami membangun hubungan baik. Kamu mudah dipercaya, senang menghubungkan rekan kerja yang berbeda latar belakang, serta menjadi perekat semangat tim.",
+        synergies: {
+          analytical: "Perpaduan Sosial dan Analitis menjadikanmu sosok Fair & Objective Lead: Memimpin tim dengan ketegasan bukti data yang dibawakan dengan empati mendalam.",
+          creative: "Perpaduan Sosial dan Kreatif menjadikanmu sosok Community & Culture Builder: Membangun atmosfer kerja yang ramah, hangat, dan kaya ide-ide segar.",
+          practical: "Perpaduan Sosial dan Praktis menjadikanmu sosok Agile Facilitator: Mengawal kerja lapangan agar tim tetap kompak dan menyelesaikan target nyata tepat waktu."
+        },
+        careers: [
+          { role: "Manajer Produk & Fasilitator Tim", desc: "Mengharmonisasikan kebutuhan pengguna, desainer, dan tim teknis untuk mencapai target bersama." },
+          { role: "Pengembang Talenta & Kemitraan (HR)", desc: "Membina relasi kerja sama, mengembangkan potensi talenta anggota tim, dan merawat budaya kerja." },
+          { role: "Spesialis Kepuasan Klien (Client Success)", desc: "Mendampingi pengguna, mendengarkan kebutuhan mereka, dan memberi solusi yang solutif." }
+        ],
+        majors: [
+          { name: "Psikologi & Pengembangan SDM", desc: "Mendalami perilaku manusia, dinamika kelompok, asesmen potensi, dan bimbingan karir." },
+          { name: "Manajemen Sumber Daya Manusia (HR)", desc: "Mempelajari tata kelola talenta, budaya organisasi, negosiasi, dan kepemimpinan tim." },
+          { name: "Hubungan Masyarakat (Public Relations)", desc: "Menjalin komunikasi strategis, manajemen reputasi institusi, dan diplomasi antarlembaga." },
+          { name: "Ilmu Komunikasi & Manajemen Komunitas", desc: "Membangun kemitraan publik, fasilitasi jejaring komunitas, dan relasi pemangku kepentingan." }
+        ],
+        skills: [
+          { title: "Komunikasi Persuasif & Presentasi", desc: "Menyampaikan gagasan secara hangat, santun, dan menggerakkan komitmen tim." },
+          { title: "Mendengarkan Secara Empatik (Active Listening)", desc: "Menangkap kebutuhan tersirat orang lain dan menanggapi dengan tepat." },
+          { title: "Mediasi & Resolusi Konflik", desc: "Menyelaraskan perbedaan pandangan menjadi titik temu yang produktif." },
+          { title: "Fasilitasi Pertemuan Tim", desc: "Memandu sesi rapat agar tetap terarah, inklusif, dan menghasilkan tindakan nyata." }
+        ],
+        idealEnvironment: "Lingkungan kerja yang hangat, kolaboratif, menjunjung komunikasi terbuka, serta berorientasi pada dampak positif bagi sesama."
+      },
+      practical: {
+        id: "practical",
+        label: "Praktis & Eksploratif",
+        shortLabel: "Praktis",
+        hexColor: "#EA580C",
+        badgeClass: "bg-orange-50 text-orange-800 border-orange-200",
+        scoreBoxClass: "border-orange-200 bg-orange-50/60 text-orange-900",
+        title: "The Systems Builder",
+        narrative: "Kamu adalah sosok pekerja nyata yang yakin bahwa nilai sebuah rencana ada pada hasil kerjanya. Kamu tanggap menangani instrumen teknis, cepat bertindak di lapangan, dan pantang menyerah saat mengatasi hambatan langsung.",
+        synergies: {
+          analytical: "Perpaduan Praktis dan Analitis menjadikanmu sosok Robust Infrastructure Specialist: Membangun sistem kerja yang kokoh, teruji tahan banting, dan minim error.",
+          creative: "Perpaduan Praktis dan Kreatif menjadikanmu sosok Rapid Maker: Mengubah ide konseptual menjadi produk fungsional dalam waktu singkat dengan alat yang ada.",
+          social: "Perpaduan Praktis dan Sosial menjadikanmu sosok Field Action Champion: Memimpin eksekusi lapangan dengan teladan tindakan nyata yang memotivasi rekan-rekan."
+        },
+        careers: [
+          { role: "Spesialis Otomasi & Infrastruktur Teknis", desc: "Menjaga keandalan sistem kerja, mengotomasi tugas rutin, dan memastikan operasional lancar." },
+          { role: "Eksekutor Lapangan / Full-Stack Specialist", desc: "Mengeksekusi solusi teknis dari tahap awal hingga terpasang rapi di tempat kerja." },
+          { role: "Teknisi Integrasi Sistem & Perangkat", desc: "Mengoperasikan peralatan kerja, sensor, dan menangani perbaikan teknis secara tanggap." }
+        ],
+        majors: [
+          { name: "Rekayasa Perangkat Lunak / Teknik Elektro", desc: "Mempelajari perancangan sistem perangkat keras-lunak terpadu dan keandalan operasional." },
+          { name: "Teknik Mekatronika & Otomasi Pabrik", desc: "Mendalami kendali robotika cerdas, sensor industri, dan mekanika eksekusi presisi." },
+          { name: "Manajemen Logistik & Operasional Rantai Pasok", desc: "Mengelola arus barang, optimalisasi pergudangan, dan ketangkasan distribusi lapangan." },
+          { name: "Teknologi Rekayasa Jaringan & Komputasi Awan", desc: "Membangun tulang punggung infrastruktur internet, keamanan server, dan keandalan data." }
+        ],
+        skills: [
+          { title: "Uji Coba Langsung & Debugging", desc: "Kecepatan mengisolasi kerusakan teknis dan menemukan perbaikan yang berhasil." },
+          { title: "Otomasi Alur Kerja Praktis", desc: "Memanfaatkan perkakas bantu untuk memangkas pekerjaan berulang yang menyita waktu." },
+          { title: "Perakitan Prototipe Kerja (MVP)", desc: "Membuat contoh produk kerja sederhana untuk menguji kelayakan ide di dunia nyata." },
+          { title: "Perawatan & Keandalan Alat", desc: "Memastikan seluruh peralatan dan infrastruktur kerja selalu siap beroperasi." }
+        ],
+        idealEnvironment: "Tempat kerja dinamis yang berfokus pada hasil karya nyata, mengutamakan aksi langsung daripada teori berkepanjangan, dan tanggap mengatasi tantangan lapangan."
+      }
+    };
+
+    /* Metadata Kombinasi Profil Hibrida (Menghilangkan Kesalahan & & Gandha) */
+    const hybridMeta = {
+      "analytical-practical": {
+        title: "The Systems Architect",
+        synergy: "Perpaduan seimbang antara Analitis dan Praktis menjadikanmu perancang sistem yang presisi sekaligus eksekutor tangguh di lapangan. Kamu menyusun cetak biru rencana yang rapi dan mampu menerapkannya menjadi kenyataan tanpa hambatan."
+      },
+      "analytical-creative": {
+        title: "The Strategic Innovator",
+        synergy: "Perpaduan seimbang antara Analitis dan Kreatif menjadikanmu pemikir visioner berbasis data nyata. Mampu merumuskan ide-ide terobosan orisinal sekaligus menguji kelayakan dan struktur logikanya secara mendalam."
+      },
+      "analytical-social": {
+        title: "The Data-Informed Leader",
+        synergy: "Perpaduan seimbang antara Analitis dan Sosial memberimu kepemimpinan yang objektif dan manusiawi: Mengarahkan tim dengan kejelasan data terukur yang dibawakan dengan komunikasi empatik."
+      },
+      "creative-social": {
+        title: "The Experience Storyteller",
+        synergy: "Perpaduan seimbang antara Kreatif dan Sosial melahirkan talenta yang lihai memahami emosi manusia dan mengungkapkannya melalui karya visual, narasi bermakna, dan pengalaman interaktif yang memikat."
+      },
+      "creative-practical": {
+        title: "The Rapid Prototyper",
+        synergy: "Perpaduan seimbang antara Kreatif dan Praktis menjadikanmu inovator tanggap. Cekatan mengubah sketsa ide abstrak menjadi wujud produk nyata yang siap diuji coba di dunia nyata."
+      },
+      "social-practical": {
+        title: "The Operations Facilitator",
+        synergy: "Perpaduan seimbang antara Sosial dan Praktis menjadikanmu penggerak kerja tim di lapangan yang tanggap mengatasi hambatan operasional sembari menjaga semangat dan kekompakan rekan-rekan."
+      }
+    };
+
+    function getHybridInfo(key1, key2, testType) {
+      const p1 = `${key1}-${key2}`;
+      const p2 = `${key2}-${key1}`;
+      const t = testTypeMeta[testType] || testTypeMeta["career-style"];
+      if (t && t.hybridProfiles) {
+        if (t.hybridProfiles[p1]) return t.hybridProfiles[p1];
+        if (t.hybridProfiles[p2]) return t.hybridProfiles[p2];
+      }
+      const found = hybridMeta[p1] || hybridMeta[p2];
+      if (found) return found;
+
+      const d1 = dimensionMeta[key1] || {};
+      const d2 = dimensionMeta[key2] || {};
+      return {
+        title: `Profil Hibrida: ${d1.shortLabel || "Profil"} & ${d2.shortLabel || "Mitra"}`,
+        synergy: `Kombinasi seimbang antara ${d1.label || key1} dan ${d2.label || key2} memperkaya caramu berkontribusi secara optimal.`
+      };
+    }
+
+    /* Metadata 3 Modul Tes (Menyesuaikan Dokumen Cetak & Tampilan Sesuai Pilihan Pengguna) */
+    /* Metadata 3 Modul Tes (Menyesuaikan Dokumen Cetak, Judul, Peran, dan Tampilan Sesuai Pilihan Pengguna) */
+    const testTypeMeta = {
+      "career-style": {
+        id: "career-style",
+        name: "Tes Minat Karier & Gaya Kerja",
+        tag: "Holland + Situasional",
+        printHeaderTitle: "LAPORAN HASIL ASESMEN MINAT KARIER & GAYA KERJA",
+        printHeaderSub: "TalentMatch Simulator • Pemetaan Minat Karier & Gaya Kerja Situasional 2026",
+        printHeader2Title: "Laporan Hasil Asesmen • Bagian II: Rekomendasi Karier & Jurusan",
+        printHeader2Sub: "Prospek Karier Masa Depan, Relevansi Studi & Roadmap Skill",
+        resultBadgeTag: "Minat Karier & Gaya Kerja",
+        sectionTitle: "Rekomendasi Terarah & Jalur Karier Masa Depan",
+        sectionDesc: "Dihitung otomatis dari kombinasi skor profil gaya kerja dominanmu",
+        defaultTab: "careers",
+        topScoreLabel: "Skor Tertinggi",
+        radarTitle: "Peta Radar 4 Dimensi Gaya Kerja",
+        radarSub: "Proporsi kecenderungan caramu bekerja dan berpikir",
+        radarLabels: ['Analitis', 'Kreatif', 'Sosial', 'Praktis'],
+        narrativeHeading: "Gambaran Gaya Kerjamu",
+        synergyHeading: "Kombinasi Sinergi Dua Dimensi",
+        dimensionShort: { analytical: "Analitis", creative: "Kreatif", social: "Sosial", practical: "Praktis" },
+        dimensionLabels: {
+          analytical: "Analitis & Logis",
+          creative: "Kreatif & Artistik",
+          social: "Sosial & Kolaboratif",
+          practical: "Praktis & Eksploratif"
+        },
+        dimensionDescriptions: {
+          analytical: "Berpikir terstruktur, berbasis data terukur, penalaran sebab-akibat, riset objektif, dan efisiensi sistem kerja.",
+          creative: "Berpikir konseptual, kepekaan estetika & visual, eksplorasi ide orisinal di luar kebiasaan, dan fleksibilitas kreasi.",
+          social: "Komunikasi empatik, menjembatani relasi tim, mendengarkan aktif, dan berorientasi pada dampak positif bagi orang lain.",
+          practical: "Eksekusi lapangan nyata, ketangkasan alat kerja & teknologi terapan, uji coba langsung, dan orientasi hasil nyata."
+        },
+        titles: {
+          analytical: "The Analytical Strategist",
+          creative: "The Visionary Designer",
+          social: "The Collaborative Catalyst",
+          practical: "The Systems Builder"
+        },
+        narratives: {
+          analytical: "Kamu cenderung melihat dunia secara teratur, rasional, dan berbasis bukti. Kekuatan utamamu terletak pada kecermatan membedah fakta, menimbang keputusan berdasarkan data nyata, serta membangun alur kerja yang efisien dan minim kesalahan.",
+          creative: "Kamu memiliki imajinasi konseptual yang luas, kepekaan estetika yang tajam, dan keberanian berekspresi. Kamu unggul dalam menemukan solusi dari sudut pandang yang tak terpikirkan sebelumnya dan menyajikannya secara memikat.",
+          social: "Kamu memiliki kecerdasan empati yang tinggi dan kemampuan alami membangun hubungan baik. Kamu mudah dipercaya, senang menghubungkan rekan kerja yang berbeda latar belakang, serta menjadi perekat semangat tim.",
+          practical: "Kamu adalah sosok pekerja nyata yang yakin bahwa nilai sebuah rencana ada pada hasil kerjanya. Kamu tanggap menangani instrumen teknis, cepat bertindak di lapangan, dan pantang menyerah saat mengatasi hambatan langsung."
+        },
+        hybridProfiles: {
+          "analytical-practical": { title: "The Systems Architect", synergy: "Perpaduan seimbang antara Analitis dan Praktis menjadikanmu perancang sistem yang presisi sekaligus eksekutor tangguh di lapangan." },
+          "analytical-creative": { title: "The Strategic Innovator", synergy: "Perpaduan seimbang antara Analitis dan Kreatif menjadikanmu pemikir visioner berbasis data nyata yang kaya ide-ide terobosan." },
+          "analytical-social": { title: "The Data-Informed Leader", synergy: "Perpaduan seimbang antara Analitis dan Sosial memberimu kepemimpinan objektif yang dibawakan dengan empati mendalam." },
+          "creative-social": { title: "The Experience Storyteller", synergy: "Perpaduan seimbang antara Kreatif dan Sosial melahirkan talenta yang lihai memahami emosi manusia dan mengungkapkannya lewat karya visual bermakna." },
+          "creative-practical": { title: "The Rapid Prototyper", synergy: "Perpaduan seimbang antara Kreatif dan Praktis menjadikanmu inovator tanggap yang cekatan mengubah ide abstrak menjadi produk nyata." },
+          "social-practical": { title: "The Operations Facilitator", synergy: "Perpaduan seimbang antara Sosial dan Praktis menjadikanmu penggerak tim lapangan yang tanggap sembari merawat kekompakan." }
+        }
+      },
+      "team-dynamics": {
+        id: "team-dynamics",
+        name: "Tes Dinamika Tim & Kolaborasi",
+        tag: "Dinamika Peran Tim",
+        printHeaderTitle: "LAPORAN HASIL ASESMEN DINAMIKA TIM & PERAN KOLABORASI",
+        printHeaderSub: "TalentMatch Simulator • Pemetaan Peran Kerja Tim, Interaksi & Kultur Kerja 2026",
+        printHeader2Title: "Laporan Hasil Asesmen • Bagian II: Peran Kolaborasi & Lingkungan Kerja",
+        printHeader2Sub: "Kekuatan Kontribusi Kelompok, Roadmap Skill & Ekosistem Kerja",
+        resultBadgeTag: "Dinamika Tim & Kolaborasi",
+        sectionTitle: "Peran Kolaborasi Tim, Roadmap Skill & Lingkungan Kerja",
+        sectionDesc: "Dihitung dari pola pengambilan keputusan, gaya interaksi, dan orientasi eksekusi dalam kelompok",
+        defaultTab: "skills",
+        topScoreLabel: "Peran Tim Dominan",
+        radarTitle: "Peta Radar Peran Kolaborasi Tim",
+        radarSub: "Distribusi 4 peran alamimu dalam dinamika kerja sama kelompok",
+        radarLabels: ['Strategist', 'Innovator', 'Harmonizer', 'Implementer'],
+        narrativeHeading: "Peran & Dinamika Kolaborasi dalam Tim",
+        synergyHeading: "Sinergi Dua Peran Kolaborasi dalam Kelompok",
+        dimensionShort: { analytical: "Strategist", creative: "Innovator", social: "Harmonizer", practical: "Implementer" },
+        dimensionLabels: {
+          analytical: "Peran Strategist & Nalar Kritis Tim",
+          creative: "Peran Innovator & Katalis Ide Tim",
+          social: "Peran Harmonizer & Fasilitator Tim",
+          practical: "Peran Implementer & Eksekutor Tim"
+        },
+        dimensionDescriptions: {
+          analytical: "Penjaga objektivitas nalar, memitigasi risiko proyek, membedah data secara kritis, dan merumuskan strategi tim yang terukur.",
+          creative: "Pencetus gagasan out-of-the-box, pengonsep visi kreatif, pemecah kebuntuan ide kelompok, dan pembawa inspirasi segar.",
+          social: "Perekat keharmonisan hubungan tim, pendengar aktif yang empatik, mediator silang pendapat, dan penjaga moral kerja sama.",
+          practical: "Penggerak tindakan nyata, penguji prototipe lapangan, pengawal tenggat waktu, dan penyelesai kendala teknis di garis depan."
+        },
+        titles: {
+          analytical: "The Strategic Planner & Analyst",
+          creative: "The Creative Catalyst & Innovator",
+          social: "The Team Harmonizer & Facilitator",
+          practical: "The Action Driver & Implementer"
+        },
+        narratives: {
+          analytical: "Dalam kerja kelompok, kamu adalah kompas nalar kritis yang menjaga keputusan tim tetap objektif, terarah, dan terbebas dari bias emosional. Kamu diandalkan rekan kerja untuk membedah masalah kompleks, memitigasi risiko, dan menyusun peta jalan kerja yang terstruktur.",
+          creative: "Dalam dinamika tim, kamu adalah sumber percikan inspirasi dan solusi kreatif yang memecahkan kebuntuan berpikir kelompok. Kamu berani menantang kebiasaan lama dan mengemas visi tim menjadi konsep yang memikat.",
+          social: "Dalam dinamika tim, kamu bertindak sebagai perekat hubungan dan fasilitator komunikasi yang menjaga kekompakan kelompok. Empatimu yang tinggi membuat setiap anggota merasa didengar dan dihargai, menciptakan atmosfer kolaborasi yang aman dan suportif.",
+          practical: "Dalam dinamika tim, kamu adalah pendorong aksi nyata yang memastikan rencana di atas kertas benar-benar diwujudkan di lapangan. Kamu tanggap menyelesaikan hambatan teknis dan memastikan target tim tercapai tepat waktu."
+        },
+        hybridProfiles: {
+          "analytical-practical": { title: "The Systems Builder & Coordinator", synergy: "Perpaduan Strategist dan Implementer menjadikanmu koordinator tim yang lengkap: Menyusun alur kerja terstruktur sekaligus memimpin eksekusi lapangan dengan tanggap." },
+          "analytical-creative": { title: "The Strategic Innovator", synergy: "Perpaduan Strategist dan Innovator melahirkan perancang gagasan terobosan yang tetap berpijak pada kelayakan data dan logika risiko tim." },
+          "analytical-social": { title: "The Diplomatic Strategist", synergy: "Perpaduan Strategist dan Harmonizer memberimu kepemimpinan yang objektif dan manusiawi: Mengarahkan tim lewat data yang disampaikan dengan empati mendalam." },
+          "creative-social": { title: "The Team Visionary & Connector", synergy: "Perpaduan Innovator dan Harmonizer menjadikanmu penggerak antusiasme dan budaya kerja positif yang sarat ide-ide segar." },
+          "creative-practical": { title: "The Agile Experimenter", synergy: "Perpaduan Innovator dan Implementer membuat tim tanggap menguji coba ide-ide kreatif baru langsung menjadi prototipe nyata di lapangan." },
+          "social-practical": { title: "The Field Operations Facilitator", synergy: "Perpaduan Harmonizer dan Implementer menjadikanmu fasilitator lapangan andal: Menyelesaikan target sembari menjaga kekompakan tim." }
+        }
+      },
+      "academic-pathway": {
+        id: "academic-pathway",
+        name: "Tes Eksplorasi Jurusan Kuliah",
+        tag: "Akademik & Studi",
+        printHeaderTitle: "LAPORAN HASIL PEMETAAN JURUSAN KULIAH & POTENSI AKADEMIK",
+        printHeaderSub: "TalentMatch Simulator • Analisis Kesesuaian Program Studi & Gaya Belajar 2026",
+        printHeader2Title: "Laporan Hasil Asesmen • Bagian II: Rekomendasi Program Studi Universitas",
+        printHeader2Sub: "Pilihan Jurusan Prioritas, Potensi Akademik & Prospek Profesi",
+        resultBadgeTag: "Eksplorasi Jurusan Kuliah",
+        sectionTitle: "Rekomendasi Program Studi & Jalur Pendidikan Tinggi",
+        sectionDesc: "Dihitung berdasarkan kecenderungan cara berpikir analitis, kreatif, sosial, dan praktis",
+        defaultTab: "majors",
+        topScoreLabel: "Rumpun Studi Unggulan",
+        radarTitle: "Peta Radar Kecocokan Rumpun Akademik",
+        radarSub: "Proporsi keselarasan pola pikirmu dengan 4 rumpun keilmuan",
+        radarLabels: ['STEM & Sains', 'Desain & Seni', 'Sosio-Humaniora', 'Teknik Terapan'],
+        narrativeHeading: "Karakteristik Minat Akademik & Gaya Belajar",
+        synergyHeading: "Sinergi Potensi Lintas Rumpun Keilmuan",
+        dimensionShort: { analytical: "STEM & Sains", creative: "Desain & Media", social: "Sosio-Humaniora", practical: "Teknik Terapan" },
+        dimensionLabels: {
+          analytical: "Rumpun STEM, Sains Data & Logika Komputasi",
+          creative: "Rumpun Desain, Seni, Media & Komunikasi Visual",
+          social: "Rumpun Sosial-Humaniora, Psikologi & Manajemen SDM",
+          practical: "Rumpun Rekayasa Terapan, Mekanikal & Vokasi Lapangan"
+        },
+        dimensionDescriptions: {
+          analytical: "Pemodelan matematis, rekayasa logika algoritma, riset kuantitatif berbasis data, pembuktian rasional, dan penalaran ilmiah.",
+          creative: "Eksplorasi estetika visual, bahasa rupa, kreasi multimedia, penulisan narasi kreatif, dan perancangan konsep orisinal.",
+          social: "Pemahaman perilaku individu & kelompok, komunikasi antarbudaya, kepemimpinan publik, etika sosial, dan tata kelola organisasi.",
+          practical: "Praktikum laboratorium terapan, perancangan hardware & sensor, uji coba purwarupa fisik, dan rekayasa industri lapangan."
+        },
+        titles: {
+          analytical: "The Scientific Scholar & Data Analyst",
+          creative: "The Creative Conceptor & Media Innovator",
+          social: "The Socio-Humanities & People Specialist",
+          practical: "The Applied Engineering & Field Specialist"
+        },
+        narratives: {
+          analytical: "Secara akademik, kamu memiliki modal penalaran logis yang kuat dan metodologis. Kamu sangat cocok mendalami disiplin ilmu yang membutuhkan pemodelan data, riset ilmiah kuantitatif, analisis algoritma, dan pembuktian rasional yang presisi.",
+          creative: "Secara akademik, kamu berkembang paling pesat dalam disiplin keilmuan yang mengutamakan orisinalitas ide, eksplorasi estetika visual, kajian multimedia, serta pemikiran konseptual yang menembus batasan konvensional.",
+          social: "Secara akademik, minat belajarmu berpusat pada dinamika perilaku manusia, tata kelola masyarakat, psikologi, komunikasi publik, dan perumusan kebijakan yang berdampak langsung bagi kemaslahatan bersama.",
+          practical: "Secara akademik, kamu unggul dalam bidang keilmuan rekayasa terapan, teknologi praktis, praktikum laboratorium, dan riset lapangan yang langsung menghasilkan purwarupa atau solusi kerja nyata."
+        },
+        hybridProfiles: {
+          "analytical-practical": { title: "The Systems & Software Engineer", synergy: "Perpaduan rumpun STEM dan Rekayasa Terapan sangat cocok untuk program studi Informatika, Robotika, dan Teknik Elektro Industri." },
+          "analytical-creative": { title: "The Product & Architecture Designer", synergy: "Perpaduan rumpun Sains dan Desain sangat ideal untuk Arsitektur, Desain Produk Digital (UI/UX), dan Sains Komputasi Visual." },
+          "analytical-social": { title: "The Behavioral Economist & Policy Analyst", synergy: "Perpaduan rumpun Analitis dan Sosial sangat kuat untuk Sains Data Sosial, Ekonomi Pembangunan, dan Riset Kebijakan Publik." },
+          "creative-social": { title: "The Communication & Brand Strategist", synergy: "Perpaduan rumpun Desain dan Humaniora sangat selaras untuk Desain Komunikasi Visual (DKV), Ilmu Komunikasi, dan Manajemen Media." },
+          "creative-practical": { title: "The Industrial & Digital Technologist", synergy: "Perpaduan rumpun Kreatif dan Vokasi Terapan sangat pas untuk Multimedia Terapan, Desain Produk Industri, dan Animasi Rekayasa." },
+          "social-practical": { title: "The Operations & Community Leader", synergy: "Perpaduan rumpun Sosial dan Lapangan sangat cocok untuk Manajemen Logistik, Hubungan Masyarakat Industri, dan Pengembangan Komunitas." }
+        }
+      }
+    };
+
+    /* -------------------------------------------------------------
+       3. STATE ENGINE
+       ------------------------------------------------------------- */
+    let currentIndex = 0;
+    let participantName = "";
+    let activeQuestions = [];
+    let recordedAnswers = {};
+    let isTransitioning = false;
+    let quizStartTime = Date.now();
+    let radarChartInstance = null;
+    let pendingReliabilityWarning = null;
+
+    const STORAGE_KEY_DRAFT = "talentmatch_draft_v9";
+    const STORAGE_KEY_HISTORY = "talentmatch_history_v9";
+
+    window.addEventListener('beforeprint', () => {
+      if (window.__currentReportTitle) {
+        document.title = window.__currentReportTitle;
+      }
+    });
+
+    window.addEventListener('afterprint', () => {
+      const curMeta = (typeof testTypeMeta !== 'undefined' && testTypeMeta[selectedTestType]) ? testTypeMeta[selectedTestType] : null;
+      if (curMeta) {
+        document.title = `TalentMatch Simulator • ${curMeta.name}`;
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      checkPastResult();
+      checkDraftRecovery();
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeParticipantModal();
+          closeResetModal();
+        }
+        const quizScreen = document.getElementById("screenQuiz");
+        if (quizScreen && !quizScreen.classList.contains("hidden")) {
+          if (!document.getElementById("modalResetConfirm").classList.contains("hidden")) return;
+          if (isTransitioning) return;
+
+          const key = e.key.toUpperCase();
+          const keyMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, '1': 0, '2': 1, '3': 2, '4': 3 };
+          if (keyMap.hasOwnProperty(key)) {
+            selectOption(keyMap[key]);
+          }
+        }
+      });
+    });
+
+    function checkPastResult() {
+      const past = localStorage.getItem(STORAGE_KEY_HISTORY);
+      if (past) {
+        try {
+          const parsed = JSON.parse(past);
+          const navPast = document.getElementById("navPastResultBtn");
+          if (navPast) navPast.classList.remove("hidden");
+          const btnHero = document.getElementById("btnHeroPastResult");
+          if (btnHero) btnHero.classList.remove("hidden");
+        } catch(e) {}
+      }
+    }
+
+    function checkDraftRecovery() {
+      const draft = localStorage.getItem(STORAGE_KEY_DRAFT);
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          const answeredCount = Object.keys(parsed.recordedAnswers || {}).length;
+          if (answeredCount > 0) {
+            document.getElementById("draftResumeText").textContent = 
+              `Kamu memiliki progres pengerjaan yang belum selesai (${answeredCount} dari 10 soal terjawab).`;
+            document.getElementById("draftResumeBanner").classList.remove("hidden");
+          }
+        } catch(e) {
+          localStorage.removeItem(STORAGE_KEY_DRAFT);
+        }
+      }
+    }
+
+    function saveDraft() {
+      const draft = {
+        selectedTestType: selectedTestType || "career-style",
+        participantName,
+        currentIndex,
+        activeQuestions,
+        recordedAnswers,
+        quizStartTime,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(draft));
+    }
+
+    function resumeQuizDraft() {
+      const draft = localStorage.getItem(STORAGE_KEY_DRAFT);
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          selectedTestType = parsed.selectedTestType || "career-style";
+          participantName = parsed.participantName || "";
+          currentIndex = parsed.currentIndex || 0;
+          activeQuestions = parsed.activeQuestions || [];
+          recordedAnswers = parsed.recordedAnswers || {};
+          quizStartTime = parsed.quizStartTime || Date.now();
+          isTransitioning = false;
+
+          showScreen('screenQuiz');
+          renderQuiz();
+        } catch(e) {
+          startNewQuiz();
+        }
+      }
+    }
+
+    function discardDraftAndStartNew() {
+      localStorage.removeItem(STORAGE_KEY_DRAFT);
+      document.getElementById("draftResumeBanner").classList.add("hidden");
+      startNewQuiz();
+    }
+
+    function shuffleOptions() {
+      const qList = (typeof questionsByTestType !== 'undefined' && questionsByTestType[selectedTestType]) 
+        ? questionsByTestType[selectedTestType] 
+        : rawQuestions;
+      return qList.map(q => {
+        const copy = [...q.options];
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        const letters = ['A', 'B', 'C', 'D'];
+        return {
+          ...q,
+          options: copy.map((opt, idx) => ({ ...opt, key: letters[idx] }))
+        };
+      });
+    }
+
+    function handleBrandClick() {
+      const answeredCount = Object.keys(recordedAnswers).length;
+      const quizEl = document.getElementById("screenQuiz");
+      if (quizEl && !quizEl.classList.contains("hidden") && answeredCount > 0 && answeredCount < 10) {
+        openResetModal();
+      } else {
+        showScreen('screenWelcome');
+        checkDraftRecovery();
+      }
+    }
+
+    function showScreen(screenId) {
+      ['screenWelcome', 'screenQuiz', 'screenAnalyzing', 'screenResult'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (id === screenId) el.classList.remove('hidden');
+          else el.classList.add('hidden');
+        }
+      });
+
+      // Update Header Mode Sesuai Konteks Layar
+      const navWelcome = document.getElementById("navWelcomeStatus");
+      const navQuizCenter = document.getElementById("navQuizCenter");
+      const navQuizActions = document.getElementById("navQuizActions");
+      const navResultActions = document.getElementById("navResultActions");
+
+      if (screenId === 'screenQuiz') {
+        if (navWelcome) navWelcome.classList.add('hidden');
+        if (navQuizCenter) { navQuizCenter.classList.remove('hidden'); navQuizCenter.classList.add('flex'); }
+        if (navQuizActions) { navQuizActions.classList.remove('hidden'); navQuizActions.classList.add('flex'); }
+        if (navResultActions) navResultActions.classList.add('hidden');
+      } else if (screenId === 'screenResult') {
+        if (navWelcome) navWelcome.classList.add('hidden');
+        if (navQuizCenter) navQuizCenter.classList.add('hidden');
+        if (navQuizActions) navQuizActions.classList.add('hidden');
+        if (navResultActions) { navResultActions.classList.remove('hidden'); navResultActions.classList.add('flex'); }
+      } else {
+        // Welcome atau Analyzing
+        if (navWelcome) navWelcome.classList.remove('hidden');
+        if (navQuizCenter) navQuizCenter.classList.add('hidden');
+        if (navQuizActions) navQuizActions.classList.add('hidden');
+        if (navResultActions) navResultActions.classList.add('hidden');
+        checkPastResult();
+      }
+
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    function confirmExitToHome() {
+      const answeredCount = Object.keys(recordedAnswers).length;
+      const quizEl = document.getElementById("screenQuiz");
+      if (quizEl && !quizEl.classList.contains("hidden") && answeredCount > 0 && answeredCount < 10) {
+        openResetModal();
+      } else {
+        showScreen('screenWelcome');
+        checkDraftRecovery();
+      }
+    }
+
+    let selectedTestType = "career-style";
+
+    function openParticipantModal(testId) {
+      selectedTestType = testId || "career-style";
+      const titleEl = document.getElementById("entryModalTitle");
+      const tagEl = document.getElementById("entryModalTag");
+      const modal = document.getElementById("modalParticipantEntry");
+      const input = document.getElementById("userNameInput");
+
+      if (testId === 'team-dynamics') {
+        titleEl.textContent = "Tes Dinamika Tim & Kolaborasi";
+        tagEl.textContent = "Workplace Personality";
+      } else if (testId === 'academic-pathway') {
+        titleEl.textContent = "Tes Eksplorasi Jurusan Kuliah";
+        tagEl.textContent = "Academic Pathways";
+      } else {
+        titleEl.textContent = "Tes Minat Karier & Gaya Kerja";
+        tagEl.textContent = "Holland + Situasional";
+      }
+
+      modal.classList.remove("hidden");
+      setTimeout(() => {
+        if (input) input.focus();
+      }, 100);
+    }
+
+    function closeParticipantModal() {
+      const modal = document.getElementById("modalParticipantEntry");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function startNewQuiz() {
+      closeParticipantModal();
+      const input = document.getElementById("userNameInput");
+      participantName = input ? input.value.trim() : "";
+      currentIndex = 0;
+      recordedAnswers = {};
+      isTransitioning = false;
+      quizStartTime = Date.now();
+      pendingReliabilityWarning = null;
+
+      activeQuestions = shuffleOptions();
+      saveDraft();
+
+      showScreen('screenQuiz');
+      renderQuiz();
+    }
+
+    /* -------------------------------------------------------------
+       6. RENDER KUIS & SEGMENTED PROGRESS TRACK
+       ------------------------------------------------------------- */
+    function renderQuiz() {
+      const q = activeQuestions[currentIndex];
+      const total = activeQuestions.length;
+      const answeredCount = Object.keys(recordedAnswers).length;
+      const pct = Math.round((answeredCount / total) * 100);
+
+      // Header Quiz Bar
+      document.getElementById("headerProgressFill").style.width = `${pct}%`;
+      document.getElementById("headerQuestionCounter").textContent = `${answeredCount}/${total}`;
+
+      // In-page progress
+      document.getElementById("quizHumanProgress").textContent = `Soal ${currentIndex + 1} dari ${total}`;
+      document.getElementById("quizCategoryLabel").textContent = q.category;
+      const curTestMeta = testTypeMeta[selectedTestType] || testTypeMeta["career-style"];
+      const modBadge = document.getElementById("quizModuleBadge");
+      if (modBadge) modBadge.textContent = curTestMeta.name;
+      document.getElementById("answeredCounter").textContent = `${answeredCount} / ${total}`;
+
+      document.getElementById("quizQuestionTitle").textContent = q.question;
+
+      document.getElementById("btnPrev").disabled = (currentIndex === 0 || isTransitioning);
+      document.getElementById("btnNext").disabled = (currentIndex === total - 1 || isTransitioning);
+
+      renderSegmentedProgress();
+      updateSubmitStatus();
+
+      const container = document.getElementById("quizOptionsContainer");
+      container.innerHTML = "";
+
+      const currentSelected = recordedAnswers[q.id];
+
+      q.options.forEach((opt, idx) => {
+        const isSelected = currentSelected === idx;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.role = "radio";
+        btn.setAttribute("aria-checked", isSelected ? "true" : "false");
+        btn.className = `quiz-option-btn w-full text-left p-4 sm:p-4.5 flex items-start gap-3.5 ${isSelected ? 'selected' : ''}`;
+        btn.onclick = () => selectOption(idx);
+
+        btn.innerHTML = `
+          <div class="flex-shrink-0 pt-0.5">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg border font-bold text-xs ${
+              isSelected 
+                ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs' 
+                : 'border-slate-300 bg-slate-100 text-slate-700'
+            }">
+              ${opt.key}
+            </span>
+          </div>
+          <div class="flex-grow">
+            <p class="text-sm sm:text-base font-semibold leading-relaxed text-slate-900">${opt.text}</p>
+          </div>
+          <div class="flex-shrink-0 self-center">
+            <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+              isSelected ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300 bg-white'
+            }">
+              ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-white"></span>' : ''}
+            </div>
+          </div>
+        `;
+
+        container.appendChild(btn);
+      });
+
+      saveDraft();
+    }
+
+    function renderSegmentedProgress() {
+      const track = document.getElementById("segmentedProgressTrack");
+      track.innerHTML = "";
+
+      activeQuestions.forEach((q, idx) => {
+        const isCurrent = idx === currentIndex;
+        const isAnswered = recordedAnswers[q.id] !== undefined;
+
+        const seg = document.createElement("button");
+        seg.type = "button";
+        seg.onclick = () => jumpToQuestion(idx);
+
+        let style = "h-2 rounded-full transition-all ";
+
+        if (isCurrent) {
+          style += "bg-slate-900 ring-2 ring-slate-900 ring-offset-1";
+        } else if (isAnswered) {
+          style += "bg-emerald-600 hover:bg-emerald-700";
+        } else {
+          style += "bg-slate-200 hover:bg-slate-300";
+        }
+
+        seg.className = style;
+        seg.title = `Soal ${idx + 1}: ${isAnswered ? 'Terjawab' : 'Belum diisi'}`;
+
+        track.appendChild(seg);
+      });
+    }
+
+    function jumpToQuestion(targetIndex) {
+      if (isTransitioning) return;
+      if (targetIndex >= 0 && targetIndex < activeQuestions.length) {
+        currentIndex = targetIndex;
+        renderQuiz();
+      }
+    }
+
+    function nextQuestion() {
+      if (isTransitioning) return;
+      if (currentIndex < activeQuestions.length - 1) {
+        currentIndex++;
+        renderQuiz();
+      }
+    }
+
+    function prevQuestion() {
+      if (isTransitioning) return;
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderQuiz();
+      }
+    }
+
+    function jumpToFirstSkipped() {
+      const skippedIdx = activeQuestions.findIndex(q => recordedAnswers[q.id] === undefined);
+      if (skippedIdx !== -1) {
+        jumpToQuestion(skippedIdx);
+      }
+    }
+
+    function updateSubmitStatus() {
+      const answeredCount = Object.keys(recordedAnswers).length;
+      const total = activeQuestions.length;
+      const btnViewResult = document.getElementById("btnViewResult");
+      const label = document.getElementById("btnViewResultLabel");
+      const missingBox = document.getElementById("missingQuestionsBox");
+      const missingNotice = document.getElementById("missingQuestionsNotice");
+
+      const skippedNumbers = [];
+      activeQuestions.forEach((q, idx) => {
+        if (recordedAnswers[q.id] === undefined) {
+          skippedNumbers.push(idx + 1);
+        }
+      });
+
+      if (answeredCount < total) {
+        btnViewResult.disabled = true;
+        label.textContent = `Lihat Hasil (${answeredCount}/${total})`;
+        
+        if (currentIndex === total - 1 || skippedNumbers.length <= 3) {
+          missingBox.classList.remove("hidden");
+          missingNotice.textContent = `Masih ada ${skippedNumbers.length} nomor belum terisi: Soal ${skippedNumbers.join(", ")}.`;
+        } else {
+          missingBox.classList.add("hidden");
+        }
+      } else {
+        btnViewResult.disabled = false;
+        label.textContent = "Lihat Hasil Asesmen";
+        missingBox.classList.add("hidden");
+      }
+    }
+
+    function selectOption(optIndex) {
+      if (isTransitioning) return;
+      isTransitioning = true;
+
+      const q = activeQuestions[currentIndex];
+      recordedAnswers[q.id] = optIndex;
+
+      renderQuiz();
+
+      setTimeout(() => {
+        if (currentIndex < activeQuestions.length - 1) {
+          currentIndex++;
+          renderQuiz();
+          isTransitioning = false;
+        } else {
+          isTransitioning = false;
+          updateSubmitStatus();
+        }
+      }, 190);
+    }
+
+    /* -------------------------------------------------------------
+       7. ATURAN BISNIS: DETEKSI JAWABAN SERAGAM / SPEED-RUN
+       ------------------------------------------------------------- */
+    function attemptSubmit() {
+      const answeredCount = Object.keys(recordedAnswers).length;
+      const total = activeQuestions.length;
+
+      if (answeredCount < total) {
+        jumpToFirstSkipped();
+        return;
+      }
+
+      const durationSec = Math.round((Date.now() - quizStartTime) / 1000);
+
+      const letterCounts = { A: 0, B: 0, C: 0, D: 0 };
+      activeQuestions.forEach(q => {
+        const choice = recordedAnswers[q.id];
+        if (choice !== undefined) {
+          const letter = q.options[choice].key;
+          letterCounts[letter] = (letterCounts[letter] || 0) + 1;
+        }
+      });
+      const maxLetterSame = Math.max(...Object.values(letterCounts));
+      const isUniform = maxLetterSame >= 8;
+      const isTooFast = durationSec < 12;
+
+      if (isUniform || isTooFast) {
+        const banner = document.getElementById("inPageReliabilityBanner");
+        const titleEl = document.getElementById("reliabilityBannerTitle");
+        const descEl = document.getElementById("reliabilityBannerDesc");
+
+        if (isUniform && isTooFast) {
+          titleEl.textContent = `Pola jawabanmu tampak seragam (${maxLetterSame}/10) dan selesai sangat cepat (${durationSec} detik).`;
+        } else if (isUniform) {
+          titleEl.textContent = `Sebagian besar jawabanmu (${maxLetterSame} dari 10) memilih opsi yang sama persis.`;
+        } else {
+          titleEl.textContent = `Waktu pengerjaan tercatat sangat cepat (${durationSec} detik untuk 10 skenario).`;
+        }
+
+        descEl.textContent = "Hasil mungkin kurang mencerminkan preferensi kerjamu yang sesungguhnya. Kamu bisa langsung mengulang atau tetap klik 'Lihat Hasil Asesmen' sekali lagi.";
+        banner.classList.remove("hidden");
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        pendingReliabilityWarning = { isUniform, isTooFast, durationSec, note: titleEl.textContent };
+        
+        document.getElementById("btnViewResult").onclick = () => {
+          banner.classList.add("hidden");
+          startAnalysis();
+        };
+        return;
+      }
+
+      pendingReliabilityWarning = null;
+      startAnalysis();
+    }
+
+    function dismissReliabilityBanner() {
+      document.getElementById("inPageReliabilityBanner").classList.add("hidden");
+    }
+
+    function startAnalysis() {
+      showScreen('screenAnalyzing');
+      setTimeout(() => {
+        compileAndShowResult();
+      }, 850);
+    }
+
+    /* -------------------------------------------------------------
+       8. HITUNG SKOR & TAMPILKAN HASIL
+       ------------------------------------------------------------- */
+    function compileAndShowResult() {
+      const raw = { analytical: 0, creative: 0, social: 0, practical: 0 };
+      activeQuestions.forEach(q => {
+        const choice = recordedAnswers[q.id];
+        if (choice !== undefined) {
+          const s = q.options[choice].scores;
+          raw.analytical += s.analytical;
+          raw.creative += s.creative;
+          raw.social += s.social;
+          raw.practical += s.practical;
+        }
+      });
+
+      const maxPts = 30;
+      const percentages = {
+        analytical: Math.min(100, Math.round((raw.analytical / maxPts) * 100)),
+        creative: Math.min(100, Math.round((raw.creative / maxPts) * 100)),
+        social: Math.min(100, Math.round((raw.social / maxPts) * 100)),
+        practical: Math.min(100, Math.round((raw.practical / maxPts) * 100))
+      };
+
+      const sorted = Object.keys(percentages).sort((a, b) => percentages[b] - percentages[a]);
+      const primaryKey = sorted[0];
+      const secondaryKey = sorted[1];
+
+      const diff = percentages[primaryKey] - percentages[secondaryKey];
+      const isHybrid = diff < 10;
+
+      const primary = dimensionMeta[primaryKey];
+      const secondary = dimensionMeta[secondaryKey];
+
+      const payload = {
+        name: participantName || "Kamu",
+        date: new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }),
+        testType: selectedTestType || "career-style",
+        primaryKey,
+        secondaryKey,
+        percentages,
+        isHybrid,
+        diff,
+        warning: pendingReliabilityWarning,
+        timestamp: Date.now()
+      };
+
+      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(payload));
+      localStorage.removeItem(STORAGE_KEY_DRAFT);
+      checkPastResult();
+
+      renderResultDashboard(payload, primary, secondary);
+      isTransitioning = false;
+    }
+
+    function computeMatchScore(primaryPct, secondaryPct, rankIndex) {
+      const base = (primaryPct * 0.65) + (secondaryPct * 0.35);
+      const calculated = Math.max(70, Math.min(97, Math.round(base - (rankIndex * 4))));
+      let label = "Sangat Cocok";
+      if (calculated < 78) label = "Cocok";
+      else if (calculated < 88) label = "Tingkat Kecocokan Tinggi";
+
+      return { percent: calculated, label };
+    }
+
+    function renderResultDashboard(data, primary, secondary) {
+      showScreen('screenResult');
+
+      const name = data.name || "Kamu";
+      const currentTestType = data.testType || selectedTestType || "career-style";
+      const testMeta = testTypeMeta[currentTestType] || testTypeMeta["career-style"];
+
+      // Update document.title agar tajuk cetak peramban (Chrome/Edge Header) menyesuaikan modul tes
+      const resultDocTitle = `Laporan ${testMeta.name} - ${name} - TalentMatch`;
+      document.title = resultDocTitle;
+      window.__currentReportTitle = resultDocTitle;
+
+      document.getElementById("resultGreeting").textContent = `Hasil asesmen untuk: ${name}`;
+      document.getElementById("resultDate").textContent = data.date;
+
+      // 1. Identifikasi Modul Tes yang Dipilih
+
+      // 2. Sinkronkan Header Lembar Cetak Halaman 1 Sesuai Modul Pilihan
+      const printTitleEl = document.getElementById("printReportTitle");
+      if (printTitleEl) printTitleEl.textContent = testMeta.printHeaderTitle;
+      const printSubEl = document.getElementById("printReportSub");
+      if (printSubEl) printSubEl.textContent = testMeta.printHeaderSub;
+
+      const printNameEl = document.getElementById("printParticipantName");
+      if (printNameEl) printNameEl.textContent = `Peserta: ${name}`;
+      const printDateEl = document.getElementById("printReportDate");
+      if (printDateEl) printDateEl.textContent = `Tanggal: ${data.date} • Modul: ${testMeta.name}`;
+
+      // Lencana Modul Tes di Kartu Hasil Utama
+      const testBadge = document.getElementById("testTypeBadge");
+      if (testBadge) testBadge.textContent = testMeta.name;
+
+      // 3. Sinkronkan Header Lembar Cetak Halaman 2 & Judul Seksi Rekomendasi
+      const printPage2Title = document.getElementById("printPage2Title");
+      if (printPage2Title) printPage2Title.textContent = testMeta.printHeader2Title;
+      const printPage2Sub = document.getElementById("printPage2Sub");
+      if (printPage2Sub) printPage2Sub.textContent = testMeta.printHeader2Sub;
+
+      const recSectionTitle = document.getElementById("recSectionTitle");
+      if (recSectionTitle) recSectionTitle.textContent = testMeta.sectionTitle;
+      const recSectionDesc = document.getElementById("recSectionDesc");
+      if (recSectionDesc) recSectionDesc.textContent = testMeta.sectionDesc;
+
+      const printFooterMeta = document.getElementById("printFooterMeta");
+      if (printFooterMeta) printFooterMeta.textContent = `TalentMatch Simulator © 2026 • Validitas Instrumen: ${testMeta.name}`;
+
+      // 4. Sinkronkan Judul Narrative & Top Score Label Sesuai Modul
+      const narrativeHeading = document.getElementById("resultNarrativeHeading");
+      if (narrativeHeading) narrativeHeading.textContent = testMeta.narrativeHeading;
+      const radarTitle = document.getElementById("radarTitle");
+      if (radarTitle) radarTitle.textContent = testMeta.radarTitle;
+      const radarSub = document.getElementById("radarSub");
+      if (radarSub) radarSub.textContent = testMeta.radarSub;
+
+      // 5. Sinkronkan Label & Deskripsi 4 Bar Dimensi
+      const elDimLabA = document.getElementById("dimLabelAnalytical");
+      if (elDimLabA) elDimLabA.textContent = testMeta.dimensionLabels.analytical;
+      const elDimDescA = document.getElementById("dimDescAnalytical");
+      if (elDimDescA) elDimDescA.innerHTML = `<strong>Karakteristik:</strong> ${testMeta.dimensionDescriptions.analytical}`;
+
+      const elDimLabC = document.getElementById("dimLabelCreative");
+      if (elDimLabC) elDimLabC.textContent = testMeta.dimensionLabels.creative;
+      const elDimDescC = document.getElementById("dimDescCreative");
+      if (elDimDescC) elDimDescC.innerHTML = `<strong>Karakteristik:</strong> ${testMeta.dimensionDescriptions.creative}`;
+
+      const elDimLabS = document.getElementById("dimLabelSocial");
+      if (elDimLabS) elDimLabS.textContent = testMeta.dimensionLabels.social;
+      const elDimDescS = document.getElementById("dimDescSocial");
+      if (elDimDescS) elDimDescS.innerHTML = `<strong>Karakteristik:</strong> ${testMeta.dimensionDescriptions.social}`;
+
+      const elDimLabP = document.getElementById("dimLabelPractical");
+      if (elDimLabP) elDimLabP.textContent = testMeta.dimensionLabels.practical;
+      const elDimDescP = document.getElementById("dimDescPractical");
+      if (elDimDescP) elDimDescP.innerHTML = `<strong>Karakteristik:</strong> ${testMeta.dimensionDescriptions.practical}`;
+
+      const alertBox = document.getElementById("resultNoticeAlert");
+      if (data.warning) {
+        alertBox.classList.remove("hidden");
+        const cleanNote = (data.warning.note || "").replace(/\.+$/, '');
+        document.getElementById("resultNoticeText").textContent = 
+          `${cleanNote}. Hasil asesmen disajikan sebagai gambaran awal, dan kamu dapat mengulanginya kapan saja.`;
+      } else {
+        alertBox.classList.add("hidden");
+      }
+
+      const badge = document.getElementById("resultBadge");
+      const hybridBadge = document.getElementById("hybridBadge");
+      const topScoreBox = document.getElementById("resultTopScoreBox");
+
+      if (data.isHybrid) {
+        hybridBadge.classList.remove("hidden");
+        const hInfo = getHybridInfo(primary.id, secondary.id, currentTestType);
+        
+        badge.className = "px-3 py-0.5 rounded-full text-xs font-bold bg-slate-900 text-white shadow-2xs";
+        badge.textContent = `Profil Hibrida (Selisih ${data.diff}%)`;
+
+        hybridBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300";
+        hybridBadge.textContent = `Dua Dimensi Setara: ${testMeta.dimensionShort[primary.id]} & ${testMeta.dimensionShort[secondary.id]}`;
+
+        document.getElementById("resultTitle").textContent = hInfo.title;
+        document.getElementById("resultScoreHeaderLabel").textContent = testMeta.topScoreLabel + " (Setara)";
+        document.getElementById("resultTopScoreValue").textContent = `${data.percentages[primary.id]}% & ${data.percentages[secondary.id]}%`;
+        document.getElementById("resultTopDimensionLabel").textContent = `${testMeta.dimensionShort[primary.id]} ≈ ${testMeta.dimensionShort[secondary.id]}`;
+        topScoreBox.className = "p-3.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 flex flex-col justify-center min-w-[145px] text-left";
+
+        document.getElementById("resultNarrative").textContent = 
+          `Kamu memiliki kecenderungan ${testMeta.name.toLowerCase()} yang sangat seimbang antara ranah ${testMeta.dimensionLabels[primary.id]} (${data.percentages[primary.id]}%) dan ${testMeta.dimensionLabels[secondary.id]} (${data.percentages[secondary.id]}%), dengan selisih tipis hanya ${data.diff}%. Karakter hibrida ini memberimu fleksibilitas adaptasi yang tinggi sesuai dinamika situasi.`;
+
+        document.getElementById("synergyTitle").textContent = `${testMeta.synergyHeading}: ${testMeta.dimensionShort[primary.id]} × ${testMeta.dimensionShort[secondary.id]}`;
+        document.getElementById("synergyDesc").textContent = hInfo.synergy;
+      } else {
+        hybridBadge.classList.add("hidden");
+        badge.className = `px-3 py-0.5 rounded-full text-xs font-bold border ${primary.badgeClass}`;
+        badge.textContent = `Dominan: ${testMeta.dimensionShort[primary.id]}`;
+
+        document.getElementById("resultTitle").textContent = testMeta.titles[primary.id];
+        document.getElementById("resultScoreHeaderLabel").textContent = testMeta.topScoreLabel;
+        document.getElementById("resultTopScoreValue").textContent = `${data.percentages[primary.id]}%`;
+        document.getElementById("resultTopDimensionLabel").textContent = testMeta.dimensionLabels[primary.id];
+        topScoreBox.className = `p-3.5 rounded-xl border ${primary.scoreBoxClass} flex flex-col justify-center min-w-[145px] text-left`;
+
+        document.getElementById("resultNarrative").textContent = testMeta.narratives[primary.id];
+        document.getElementById("synergyTitle").textContent = testMeta.synergyHeading;
+        document.getElementById("synergyDesc").textContent = primary.synergies[secondary.id] || 
+          `${primary.label} berpadu selaras dengan ${secondary.label} memperkaya caramu berkontribusi secara optimal.`;
+      }
+
+      const p = data.percentages;
+      document.getElementById("scoreAnalytical").textContent = `${p.analytical}%`;
+      document.getElementById("barAnalytical").style.width = `${p.analytical}%`;
+
+      document.getElementById("scoreCreative").textContent = `${p.creative}%`;
+      document.getElementById("barCreative").style.width = `${p.creative}%`;
+
+      document.getElementById("scoreSocial").textContent = `${p.social}%`;
+      document.getElementById("barSocial").style.width = `${p.social}%`;
+
+      document.getElementById("scorePractical").textContent = `${p.practical}%`;
+      document.getElementById("barPractical").style.width = `${p.practical}%`;
+
+      const careersContainer = document.getElementById("tabPanelCareers");
+      careersContainer.innerHTML = primary.careers.map((c, i) => {
+        const match = computeMatchScore(p[primary.id], p[secondary.id], i);
+        return `
+          <div class="p-4 rounded-xl border border-slate-200 bg-white flex flex-col justify-between hover:border-emerald-300 transition shadow-xs">
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  ${match.label} (${match.percent}%)
+                </span>
+                <span class="text-xs font-bold text-slate-400">#0${i+1}</span>
+              </div>
+              <h4 class="text-sm font-bold text-slate-900 mb-1">${c.role}</h4>
+              <p class="text-xs text-slate-600 leading-relaxed font-normal">${c.desc}</p>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Rekomendasi Jurusan Kuliah Terkait (Khas AkuPintar)
+      const majorsContainer = document.getElementById("tabPanelMajors");
+      if (majorsContainer) {
+        majorsContainer.innerHTML = (primary.majors || []).map((m, i) => `
+          <div class="p-4 rounded-xl border border-slate-200 bg-white flex items-start gap-3.5 hover:border-blue-300 transition shadow-xs">
+            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 font-extrabold text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-200">
+              J${i+1}
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded">Rekomendasi Program Studi</span>
+              <h4 class="text-sm font-bold text-slate-900 mt-1 mb-1">${m.name}</h4>
+              <p class="text-xs text-slate-600 leading-relaxed font-normal">${m.desc}</p>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      // Roadmap Skill & Lingkungan Kerja
+      const skillsContainer = document.getElementById("skillsGrid");
+      if (skillsContainer) {
+        skillsContainer.innerHTML = primary.skills.map((s, i) => `
+          <div class="p-4 rounded-xl border border-slate-200 bg-white flex items-start gap-3 shadow-xs">
+            <span class="w-6 h-6 rounded bg-emerald-50 text-emerald-800 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-emerald-200">
+              ${i+1}
+            </span>
+            <div>
+              <h4 class="text-sm font-bold text-slate-900 mb-0.5">${s.title}</h4>
+              <p class="text-xs text-slate-600 leading-relaxed font-normal">${s.desc}</p>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      const envEl = document.getElementById("resultIdealEnvironment");
+      if (envEl) {
+        envEl.textContent = primary.idealEnvironment || "Lingkungan kerja fleksibel, komunikatif, dan terstruktur.";
+      }
+
+      // 4. Tata Ulang Urutan Blok Rekomendasi di Halaman 2 Sesuai Fokus Tes yang Dipilih
+      const wrapper = document.getElementById("recBlocksWrapper");
+      const blockCareers = document.getElementById("blockCareers");
+      const blockMajors = document.getElementById("blockMajors");
+      const blockSkills = document.getElementById("blockSkills");
+
+      const titleCareers = document.getElementById("titleCareersHeader");
+      const titleMajors = document.getElementById("titleMajorsHeader");
+      const titleSkills = document.getElementById("titleSkillsHeader");
+
+      if (wrapper && blockCareers && blockMajors && blockSkills) {
+        if (currentTestType === 'academic-pathway') {
+          // Fokus Tes Jurusan Kuliah: Tempatkan Jurusan Kuliah di Bagian A!
+          wrapper.appendChild(blockMajors);
+          wrapper.appendChild(blockCareers);
+          wrapper.appendChild(blockSkills);
+
+          if (titleMajors) titleMajors.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-600"></span><span>A. Rekomendasi Program Studi / Jurusan Kuliah Prioritas</span>';
+          if (titleCareers) titleCareers.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-600"></span><span>B. Prospek Karier Terkait Pilihan Jurusan</span>';
+          if (titleSkills) titleSkills.innerHTML = '<span class="w-2 h-2 rounded-full bg-purple-600"></span><span>C. Kompetensi Akademik & Lingkungan Belajar Ideal</span>';
+        } else if (currentTestType === 'team-dynamics') {
+          // Fokus Tes Dinamika Tim: Tempatkan Roadmap Skill & Peran Tim di Bagian A!
+          wrapper.appendChild(blockSkills);
+          wrapper.appendChild(blockCareers);
+          wrapper.appendChild(blockMajors);
+
+          if (titleSkills) titleSkills.innerHTML = '<span class="w-2 h-2 rounded-full bg-purple-600"></span><span>A. Gaya Interaksi, Roadmap Skill Kolaborasi & Budaya Kerja</span>';
+          if (titleCareers) titleCareers.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-600"></span><span>B. Rekomendasi Posisi & Peran Ideal dalam Tim</span>';
+          if (titleMajors) titleMajors.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-600"></span><span>C. Jurusan Terkait Manajemen Tim & Dinamika Kelompok</span>';
+        } else {
+          // Default: Minat Karier & Gaya Kerja
+          wrapper.appendChild(blockCareers);
+          wrapper.appendChild(blockMajors);
+          wrapper.appendChild(blockSkills);
+
+          if (titleCareers) titleCareers.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-600"></span><span>A. Rekomendasi Karier Masa Depan</span>';
+          if (titleMajors) titleMajors.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-600"></span><span>B. Rekomendasi Program Studi / Jurusan Kuliah</span>';
+          if (titleSkills) titleSkills.innerHTML = '<span class="w-2 h-2 rounded-full bg-purple-600"></span><span>C. Roadmap Pengembangan Skill & Lingkungan Kerja</span>';
+        }
+      }
+
+      // 5. Buka Tab Layar Sesuai Modul Pilihan Secara Otomatis
+      switchTab(testMeta.defaultTab);
+
+      renderRadar(p, testMeta.radarLabels);
+    }
+
+    /* -------------------------------------------------------------
+       9. RADAR CHART
+       ------------------------------------------------------------- */
+    function renderRadar(percentages, labels) {
+      window.__currentRadarLabels = labels;
+      const canvas = document.getElementById('radarChartCanvas');
+      if (!canvas) return;
+
+      if (radarChartInstance) {
+        radarChartInstance.destroy();
+      }
+
+      radarChartInstance = new Chart(canvas, {
+        type: 'radar',
+        data: {
+          labels: (window.__currentRadarLabels || ['Analitis', 'Kreatif', 'Sosial', 'Praktis']),
+          datasets: [{
+            label: 'Persentase Skor',
+            data: [
+              percentages.analytical,
+              percentages.creative,
+              percentages.social,
+              percentages.practical
+            ],
+            fill: true,
+            backgroundColor: 'rgba(22, 163, 74, 0.12)',
+            borderColor: '#16A34A',
+            borderWidth: 2,
+            pointBackgroundColor: ['#2563EB', '#9333EA', '#16A34A', '#EA580C'],
+            pointBorderColor: '#FFFFFF',
+            pointBorderWidth: 1.5,
+            pointRadius: 4.5,
+            pointHoverRadius: 6.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0F172A',
+              titleFont: { family: '"Plus Jakarta Sans", sans-serif', size: 12, weight: 'bold' },
+              bodyFont: { family: '"Plus Jakarta Sans", sans-serif', size: 12 },
+              padding: 9,
+              cornerRadius: 6,
+              callbacks: {
+                label: function(ctx) {
+                  return ` ${ctx.label}: ${ctx.raw}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            r: {
+              angleLines: { color: '#E2E8F0' },
+              grid: { color: '#F1F5F9' },
+              pointLabels: {
+                font: {
+                  family: '"Plus Jakarta Sans", sans-serif',
+                  size: 12,
+                  weight: '600'
+                },
+                color: '#334155'
+              },
+              suggestedMin: 0,
+              suggestedMax: 100,
+              ticks: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    /* -------------------------------------------------------------
+       10. MODAL, TAB & EXPORT
+       ------------------------------------------------------------- */
+    function openResetModal() {
+      document.getElementById("modalResetConfirm").classList.remove("hidden");
+    }
+
+    function closeResetModal() {
+      document.getElementById("modalResetConfirm").classList.add("hidden");
+    }
+
+    function confirmResetQuiz() {
+      openResetModal();
+    }
+
+    function executeResetQuiz() {
+      closeResetModal();
+      localStorage.removeItem(STORAGE_KEY_DRAFT);
+      startNewQuiz();
+    }
+
+    function switchTab(type) {
+      const tabs = [
+        { id: 'careers', btn: document.getElementById("tabBtnCareers"), panel: document.getElementById("tabPanelCareers") },
+        { id: 'majors', btn: document.getElementById("tabBtnMajors"), panel: document.getElementById("tabPanelMajors") },
+        { id: 'skills', btn: document.getElementById("tabBtnSkills"), panel: document.getElementById("tabPanelSkills") }
+      ];
+
+      tabs.forEach(t => {
+        if (!t.btn || !t.panel) return;
+        if (t.id === type) {
+          t.btn.className = "px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-900 font-bold transition";
+          t.panel.classList.remove("hidden");
+        } else {
+          t.btn.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-medium transition";
+          t.panel.classList.add("hidden");
+        }
+      });
+    }
+
+    function loadPreviousResult() {
+      const past = localStorage.getItem(STORAGE_KEY_HISTORY);
+      if (past) {
+        try {
+          const parsed = JSON.parse(past);
+          selectedTestType = parsed.testType || "career-style";
+          participantName = parsed.name || "";
+          const primary = dimensionMeta[parsed.primaryKey];
+          const secondary = dimensionMeta[parsed.secondaryKey];
+          renderResultDashboard(parsed, primary, secondary);
+        } catch(e) {}
+      }
+    }
+
+    function copySummaryText() {
+      const past = localStorage.getItem(STORAGE_KEY_HISTORY);
+      if (!past) return;
+
+      const data = JSON.parse(past);
+      const currentTestType = data.testType || "career-style";
+      const testMeta = testTypeMeta[currentTestType] || testTypeMeta["career-style"];
+
+      const primary = dimensionMeta[data.primaryKey];
+      const secondary = dimensionMeta[data.secondaryKey];
+
+      const profileName = data.isHybrid 
+        ? `${getHybridInfo(data.primaryKey, data.secondaryKey).title} (Hibrida: ${primary.shortLabel} & ${secondary.shortLabel})`
+        : `${primary.title} (${primary.label})`;
+
+      const text = 
+`RINGKASAN ASESMEN TALENTMATCH SIMULATOR
+Modul Asesmen      : ${testMeta.name} (${testMeta.tag})
+======================================================
+Nama Peserta       : ${data.name}
+Tanggal Pengerjaan : ${data.date}
+Profil Utama       : ${profileName}
+Tipe Karakter      : ${data.isHybrid ? "Profil Hibrida (Dua Dimensi Seimbang)" : "Dominan Tunggal"}
+
+Distribusi Skor 4 Dimensi:
+- Analitis & Logis   : ${data.percentages.analytical}% (Biru)
+- Kreatif & Artistik : ${data.percentages.creative}% (Ungu)
+- Sosial & Relasi    : ${data.percentages.social}% (Hijau)
+- Praktis & Lapangan : ${data.percentages.practical}% (Oranye)
+
+Rekomendasi Profesi Masa Depan:
+${primary.careers.map((c, i) => {
+  const m = computeMatchScore(data.percentages[data.primaryKey], data.percentages[data.secondaryKey], i);
+  return `- ${c.role} (${m.label}: ${m.percent}%)`;
+}).join('\n')}
+
+Rekomendasi Jurusan Kuliah Terkait:
+${(primary.majors || []).map(m => `- ${m.name}`).join('\n')}
+
+Lingkungan Kerja Ideal:
+${primary.idealEnvironment || "Fleksibel dan terstruktur."}
+======================================================
+Dievaluasi mandiri via TalentMatch Simulator (Ref: AkuPintar Model).`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Ringkasan laporan berhasil disalin!");
+      }).catch(() => {
+        showToast("Berhasil disalin!");
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toastNotification");
+      const text = document.getElementById("toastMessage");
+      text.textContent = msg;
+      toast.classList.remove("translate-y-16", "opacity-0");
+      toast.classList.add("translate-y-0", "opacity-100");
+
+      setTimeout(() => {
+        toast.classList.remove("translate-y-0", "opacity-100");
+        toast.classList.add("translate-y-16", "opacity-0");
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
